@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Trophy, ArrowLeft } from 'lucide-react'
 import ProfileBadge from '@/components/profile-badge'
 import Leaderboard from '@/components/dashboard/Leaderboard'
-
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE } from '@/lib/api/config'
 
 export default function LeaderboardPage() {
   const router = useRouter()

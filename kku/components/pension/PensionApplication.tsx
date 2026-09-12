@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, Send, AlertTriangle, CheckCircle2, FileText, ShieldCheck } from 'lucide-react'
 import { CitizenInfo } from './PensionOverview'
 import { EligibilityData } from './PensionEligibility'
+import { API_BASE } from '@/lib/api/config'
 
 interface PensionApplicationProps {
   isOpen: boolean
@@ -95,7 +96,7 @@ export default function PensionApplication({
 
     try {
       const token = localStorage.getItem('kku_token')
-      const res = await fetch('http://localhost:5000/api/pension/apply', {
+      const res = await fetch(`${API_BASE}/pension/apply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

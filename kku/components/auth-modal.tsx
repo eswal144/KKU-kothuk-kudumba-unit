@@ -9,8 +9,9 @@ interface AuthModalProps {
   onClose: () => void
   onSuccess: () => void
 }
+import { AUTH_BASE } from '@/lib/api/config'
 
-const API_BASE_URL = 'http://localhost:5000/api/auth'
+const API_BASE_URL = AUTH_BASE
 
 export default function AuthModal({ isOpen, initialTab = 'register', onClose, onSuccess }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<'register' | 'login'>(initialTab)

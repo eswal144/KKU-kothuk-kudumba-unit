@@ -84,8 +84,7 @@ interface MyDonationStatus {
   totalReceived: number
   lastDonationAt?: string | null
 }
-
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE } from '@/lib/api/config'
 
 export default function MosqBankPage() {
   const router = useRouter()

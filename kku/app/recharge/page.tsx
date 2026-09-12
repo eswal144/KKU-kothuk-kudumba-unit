@@ -14,8 +14,7 @@ import {
   RechargeStatus,
   RechargeHistoryItem
 } from '@/lib/api/recharge'
-
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE } from '@/lib/api/config'
 
 export default function RechargePage() {
   const router = useRouter()

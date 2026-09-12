@@ -14,6 +14,7 @@ import {
   Briefcase
 } from 'lucide-react'
 import { BiteVacancy } from './RealGeoMap'
+import { API_BASE } from '@/lib/api/config'
 
 // Dynamically import RealGeoMap to avoid SSR window/Leaflet issues
 const RealGeoMap = dynamic(() => import('./RealGeoMap'), { ssr: false })
@@ -69,7 +70,7 @@ export default function KkuMapWidget() {
   // Fetch real vacancy data from backend SQLite API
   const fetchVacancies = useCallback(async (isInitial = false) => {
     try {
-      const res = await fetch('http://localhost:5000/api/jobs/vacancies')
+      const res = await fetch(`${API_BASE}/jobs/vacancies`)
       if (!res.ok) throw new Error('Failed to load vacancies')
       const data: BiteVacancy[] = await res.json()
       if (Array.isArray(data)) {
@@ -147,7 +148,7 @@ export default function KkuMapWidget() {
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('kku_token') : null
-      const res = await fetch('http://localhost:5000/api/jobs/apply', {
+      const res = await fetch(`${API_BASE}/jobs/apply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

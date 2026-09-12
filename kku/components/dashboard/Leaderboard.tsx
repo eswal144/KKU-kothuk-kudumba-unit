@@ -13,6 +13,8 @@ export interface LeaderboardEntry {
   survival_days: number
 }
 
+import { API_BASE } from '@/lib/api/config'
+
 interface LeaderboardProps {
   leaderboard?: LeaderboardEntry[]
   onRefresh?: () => void
@@ -29,7 +31,7 @@ export default function Leaderboard({ leaderboard: initialLeaderboard = [], onRe
   const refreshLeaderboard = useCallback(async () => {
     setIsUpdating(true)
     try {
-      const res = await fetch('http://localhost:5000/api/leaderboard')
+      const res = await fetch(`${API_BASE}/leaderboard`)
       if (res.ok) {
         const json = await res.json()
         if (Array.isArray(json.leaderboard)) {

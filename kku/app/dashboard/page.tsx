@@ -17,8 +17,7 @@ import Leaderboard from '@/components/dashboard/Leaderboard'
 import PopulationEvents from '@/components/dashboard/PopulationEvents'
 import EmergencyAlerts from '@/components/dashboard/EmergencyAlerts'
 import KkuMapWidget from '@/components/dashboard/KkuMapWidget'
-
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE } from '@/lib/api/config'
 
 
 

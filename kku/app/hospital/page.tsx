@@ -61,8 +61,7 @@ interface HospitalEvent {
   patient_name?: string
   created_at: string
 }
-
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE } from '@/lib/api/config'
 
 export default function HospitalPage() {
   const router = useRouter()

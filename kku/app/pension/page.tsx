@@ -9,8 +9,7 @@ import PensionEligibility, { EligibilityData } from '@/components/pension/Pensio
 import PensionApplication from '@/components/pension/PensionApplication'
 import PensionHistory from '@/components/pension/PensionHistory'
 import PensionNotificationCenter, { PensionNotification } from '@/components/pension/PensionNotificationCenter'
-
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE } from '@/lib/api/config'
 
 export default function PensionPage() {
   const router = useRouter()

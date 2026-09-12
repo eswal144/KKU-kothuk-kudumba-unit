@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { UserRound, LogOut, ArrowUpRight, ChevronDown, ShieldCheck, X, Sparkles, Pencil, Save } from 'lucide-react'
+import { AUTH_BASE } from '@/lib/api/config'
 
-const API_BASE = 'http://localhost:5000/api/auth'
+const API_BASE = AUTH_BASE
 
 interface ProfileData {
   id: number

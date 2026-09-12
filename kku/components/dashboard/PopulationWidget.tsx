@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Users, UserPlus, UserMinus, AlertCircle, RefreshCw, Plus, Minus } from 'lucide-react'
 import PopulationOdometer from './PopulationOdometer'
+import { API_BASE } from '@/lib/api/config'
 
 interface PopulationOverview {
   totalPopulation: number
@@ -19,7 +20,7 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
 
   const fetchOverview = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/population/overview')
+      const res = await fetch(`${API_BASE}/population/overview`)
       if (!res.ok) {
         throw new Error(`Server returned HTTP ${res.status}`)
       }
@@ -54,7 +55,7 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
   const handleRecordBirth = async () => {
     setUpdating(true)
     try {
-      const res = await fetch('http://localhost:5000/api/population/birth', { method: 'POST' })
+      const res = await fetch(`${API_BASE}/population/birth`, { method: 'POST' })
       if (res.ok) {
         const json = await res.json()
         if (json.overview) {
@@ -84,7 +85,7 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
   const handleRecordDeath = async () => {
     setUpdating(true)
     try {
-      const res = await fetch('http://localhost:5000/api/population/death', { method: 'POST' })
+      const res = await fetch(`${API_BASE}/population/death`, { method: 'POST' })
       if (res.ok) {
         const json = await res.json()
         if (json.overview) {
