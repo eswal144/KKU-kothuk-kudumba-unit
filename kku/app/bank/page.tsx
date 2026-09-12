@@ -887,7 +887,7 @@ export default function MosqBankPage() {
                 </h3>
               </div>
               <span style={{ fontSize: '10px', color: 'var(--dim)' }}>
-                SQLite Verified
+                Civic Ledger Verified
               </span>
             </div>
 

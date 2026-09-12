@@ -56,7 +56,7 @@ export default function RechargePage() {
         router.replace('/')
         return
       }
-      setError('Could not connect to KKU Backend API server on http://localhost:5000.')
+      setError('Could not connect to KKU Swarm API server. Please check your network connection.')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -114,7 +114,7 @@ export default function RechargePage() {
       <main className="kku-site" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <div className="eyebrow"><span className="eyebrow-dot" /> Connecting to MOSQ-RECHARGE™ Center...</div>
-          <p style={{ color: 'var(--dim)', fontSize: '13px', marginTop: '12px' }}>Reading SQLite3 Saliva Reserve database</p>
+          <p style={{ color: 'var(--dim)', fontSize: '13px', marginTop: '12px' }}>Connecting to KKU Saliva Telemetry network...</p>
         </div>
       </main>
     )
@@ -154,7 +154,7 @@ export default function RechargePage() {
               gap: '6px'
             }}
           >
-            <RefreshCw size={13} className={refreshing ? 'spin' : ''} /> {refreshing ? 'Refreshing...' : 'Refresh API'}
+            <RefreshCw size={13} className={refreshing ? 'spin' : ''} /> {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
           <ProfileBadge />
         </div>
@@ -172,9 +172,9 @@ export default function RechargePage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.12em', color: 'var(--dim)', fontWeight: 600 }}>
             <Radio size={12} style={{ color: 'var(--mint)' }} />
-            <span>SQLite Saliva DB Active</span>
+            <span>KKU Swarm Grid Active</span>
             &bull;
-            <span>JWT Authenticated</span>
+            <span>Verified Citizen Stream</span>
           </div>
         </div>
 

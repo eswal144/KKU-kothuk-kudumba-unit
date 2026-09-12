@@ -34,7 +34,7 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
       setError(null)
     } catch (err: any) {
       if (!data) {
-        setError('Unable to load KKU population telemetry. Please verify backend API on http://localhost:5000.')
+        setError('Unable to load KKU population telemetry. Please check network connection.')
       }
     } finally {
       setLoading(false)
@@ -153,7 +153,7 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
       {loading && !data && (
         <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--dim)', fontSize: '12px' }}>
           <RefreshCw size={18} className="spin" style={{ marginBottom: '8px' }} />
-          <p style={{ margin: 0 }}>Connecting to SQLite3 Population Stream...</p>
+          <p style={{ margin: 0 }}>Connecting to KKU Population Telemetry Stream...</p>
         </div>
       )}
 

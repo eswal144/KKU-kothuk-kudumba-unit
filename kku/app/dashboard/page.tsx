@@ -120,7 +120,7 @@ export default function DashboardPage() {
       }
 
     } catch (err: any) {
-      setError('Could not connect to KKU Backend API server. Please ensure backend is running on http://localhost:5000.')
+      setError('Could not connect to KKU Swarm API server. Please check your network connection.')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -151,7 +151,7 @@ export default function DashboardPage() {
       <main className="kku-site" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <div className="eyebrow"><span className="eyebrow-dot" /> Loading KKU Command Center...</div>
-          <p style={{ color: 'var(--dim)', fontSize: '13px', marginTop: '12px' }}>Connecting to SQLite3 civilization backend</p>
+          <p style={{ color: 'var(--dim)', fontSize: '13px', marginTop: '12px' }}>Connecting to KKU Swarm Civilization Network...</p>
         </div>
       </main>
     )

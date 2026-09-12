@@ -104,5 +104,108 @@ h1,h2 { font-weight:300; letter-spacing:-.07em; line-height:.92; margin:0; color
 .profile-popover-footer .popover-dash-btn:hover { transform: translateY(-2px); background: #047857; color: #ffffff; }
 .profile-popover-footer .popover-logout-btn { background: #fdfbf7; border: 1px solid var(--border); color: var(--dim); }
 .profile-popover-footer .popover-logout-btn:hover { border-color: #dc2626; color: #dc2626; }
-@media (max-width: 760px) { .profile-popover { width: calc(100vw - 40px); right: -10px; } .profile-trigger-info { display: none; } }
+@media (max-width: 760px) { 
+  .profile-popover { width: calc(100vw - 32px); right: -8px; max-height: 85vh; } 
+  .profile-trigger-info { display: none; } 
+}
+
+/* ==========================================================================
+   UNIVERSAL RESPONSIVE STYLES (Mobile, Tablet, Laptop, Desktop)
+   ========================================================================== */
+
+/* Fluid container & page wrappers */
+.kku-site {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Smooth custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #fdfbf7;
+}
+::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mint);
+}
+
+/* Responsive Table & Overflow containers */
+.table-responsive,
+.overflow-x-auto {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile & Tablet Navbar Optimizations */
+@media (max-width: 1024px) {
+  .kku-nav {
+    height: 74px;
+    padding: 0 4vw;
+  }
+  .kku-mark img {
+    height: 48px !important;
+  }
+  .kku-nav-links {
+    gap: 18px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 768px) {
+  .kku-nav {
+    height: 66px;
+    padding: 0 16px;
+    gap: 10px;
+  }
+  .kku-mark img {
+    height: 40px !important;
+  }
+  .kku-mark span {
+    font-size: 15px;
+  }
+  .kku-nav-links {
+    display: none; /* Hide cluttered desktop navbar links on phone */
+  }
+  .kku-modal {
+    padding: 22px 18px !important;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+  .kku-dashboard {
+    padding: 20px 16px !important;
+    margin: 20px auto !important;
+  }
+  .kku-passport-card {
+    padding: 20px 16px !important;
+  }
+}
+
+/* Ultra Small Mobile Screens (< 420px) */
+@media (max-width: 420px) {
+  .kku-nav {
+    height: 60px;
+    padding: 0 12px;
+  }
+  .kku-mark img {
+    height: 36px !important;
+  }
+  .kku-mark span {
+    font-size: 13px;
+  }
+  .profile-trigger {
+    padding: 4px 8px;
+  }
+  .profile-avatar {
+    width: 26px;
+    height: 26px;
+  }
+}
 

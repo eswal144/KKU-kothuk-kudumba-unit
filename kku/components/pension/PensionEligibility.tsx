@@ -110,7 +110,7 @@ export default function PensionEligibility({
           </h3>
         </div>
         <span style={{ fontSize: '11px', color: 'var(--dim)' }}>
-          Authority: SQLite3 &bull; Node.js Deterministic Evaluation
+          Authority: KKU Civil Welfare &bull; Deterministic Citizen Evaluation
         </span>
       </div>
 
