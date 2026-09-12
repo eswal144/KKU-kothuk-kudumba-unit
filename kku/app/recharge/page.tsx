@@ -131,6 +131,7 @@ export default function RechargePage() {
         </a>
         <div className="kku-nav-links">
           <a href="/dashboard">Home</a>
+          <a href="/bank">🩸 MOSQ-BANK</a>
           <a href="/hospital">🏥 MOSQ-HOSPITAL</a>
           <a href="/bite-vacancies">Bite Vacancies</a>
           <a href="/pension">🏛️ MOSQ-PENSION</a>

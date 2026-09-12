@@ -57,35 +57,151 @@ export default function KkuLanding() {
         <ProfileBadge onOpenAuth={openAuth} />
       </nav>
 
-      <section className="kku-hero" id="top">
-        <div className="hero-copy">
-          <p className="eyebrow"><span className="eyebrow-dot" /> LIVE SIMULATION ACTIVE • GROQ AI</p>
-          <h1>The digital home<br /><em>for every mosquito.</em></h1>
-          <p className="hero-lede">A connected ecosystem for the world&apos;s most misunderstood community. Identity, care, work, and a live AI-simulated civilization.</p>
-          <div className="hero-actions">
-            {isLoggedIn ? (
-              <a href="/dashboard" className="kku-button" style={{ textDecoration: 'none' }}>
-                Open Dashboard <ArrowUpRight size={16} />
-              </a>
-            ) : (
-              <button
-                onClick={() => openAuth('register')}
-                className="kku-button"
-                style={{ border: 'none', cursor: 'pointer' }}
-              >
-                Enter KKU <ArrowUpRight size={16} />
-              </button>
-            )}
-            <a href="#ecosystem" className="text-link">Explore Ecosystem <ArrowDownRight size={16} /></a>
+      <section className="kku-hero" id="top" style={{ minHeight: 'calc(100svh - 78px)', display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div className="hero-copy" style={{ maxWidth: '600px', zIndex: 2 }}>
+          {/* Eyebrow badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', fontSize: '10px', fontWeight: 800, letterSpacing: '.18em', color: '#047857', textTransform: 'uppercase' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#047857', display: 'inline-block' }} />
+            <span>LIVE SIMULATION ACTIVE &bull; GROQ AI</span>
+          </div>
+
+          {/* Main Headline */}
+          <h1 style={{ fontSize: 'clamp(3.4rem, 6.4vw, 5.8rem)', fontWeight: 300, letterSpacing: '-.03em', lineHeight: 0.96, margin: '0 0 24px', color: '#1c1917' }}>
+            The digital<br />
+            home<br />
+            <span style={{ color: '#047857', fontWeight: 800 }}>
+              for every<br />
+              mosquito.
+            </span>
+          </h1>
+
+          {/* Sub-headline lede */}
+          <p style={{ color: '#52525b', fontSize: '15px', lineHeight: 1.6, maxWidth: '440px', margin: '0 0 32px' }}>
+            A connected ecosystem for the world&apos;s most misunderstood community. Identity, care, work, and a live AI-simulated civilization.
+          </p>
+
+          {/* Pill CTA Button */}
+          <div style={{ marginBottom: '40px' }}>
+            <button
+              onClick={() => isLoggedIn ? router.push('/dashboard') : openAuth('register')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '14px 28px',
+                background: '#047857',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: 700,
+                letterSpacing: '.03em',
+                borderRadius: '9999px',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(4, 120, 87, 0.28)',
+                transition: 'all .25s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.background = '#065f46'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.background = '#047857'
+              }}
+            >
+              <span>Explore the Simulation</span>
+              <span style={{ fontSize: '15px' }}>&rarr;</span>
+            </button>
+          </div>
+
+          {/* 3 Metric Columns with Left Dividers */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '28px', flexWrap: 'wrap' }}>
+            <div style={{ borderLeft: '1.5px solid #d1d5db', paddingLeft: '12px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#047857', letterSpacing: '-.02em', lineHeight: 1 }}>
+                1M+
+              </div>
+              <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#71717a', marginTop: '4px' }}>
+                SIMULATED
+              </div>
+            </div>
+
+            <div style={{ borderLeft: '1.5px solid #d1d5db', paddingLeft: '12px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#047857', letterSpacing: '-.02em', lineHeight: 1 }}>
+                24/7
+              </div>
+              <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#71717a', marginTop: '4px' }}>
+                LIVE ECOSYSTEM
+              </div>
+            </div>
+
+            <div style={{ borderLeft: '1.5px solid #d1d5db', paddingLeft: '12px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#047857', letterSpacing: '-.02em', lineHeight: 1 }}>
+                100%
+              </div>
+              <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#71717a', marginTop: '4px' }}>
+                AI POWERED
+              </div>
+            </div>
           </div>
         </div>
-        <div className="hero-art">
-          <div className="art-orbit orbit-one" />
-          <div className="art-orbit orbit-two" />
-          <img src="/kku-mosquito.png" alt="A mosquito suspended in the KKU system" />
-          <p className="art-caption">A new kind of<br />social infrastructure</p>
-          <span className="art-coordinate">10° 19&apos; 48.2&quot; N / 76° 16&apos; 48.1&quot; E</span>
+
+        {/* Hero Artwork with Radial Sage Disc, Orbit & Side Text */}
+        <div className="hero-art" style={{ position: 'absolute', right: '4vw', top: '50%', transform: 'translateY(-50%)', width: 'min(48vw, 620px)', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Soft Sage Disc Glow */}
+          <div
+            style={{
+              position: 'absolute',
+              width: '85%',
+              height: '85%',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(5, 150, 105, 0.18) 0%, rgba(5, 150, 105, 0.04) 65%, transparent 75%)',
+              pointerEvents: 'none'
+            }}
+          />
+
+          {/* Thin Orbit Ring */}
+          <div
+            style={{
+              position: 'absolute',
+              width: '88%',
+              height: '88%',
+              borderRadius: '50%',
+              border: '1px solid rgba(4, 120, 87, 0.25)',
+              pointerEvents: 'none'
+            }}
+          >
+            {/* Orbit Accent Bead at top-right */}
+            <span
+              style={{
+                position: 'absolute',
+                top: '14%',
+                right: '14%',
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: '#047857',
+                boxShadow: '0 0 10px rgba(4, 120, 87, 0.5)'
+              }}
+            />
+          </div>
+
+          {/* High-res Mosquito image */}
+          <img
+            src="/kku-mosquito.png"
+            alt="A mosquito suspended in the KKU system"
+            style={{ width: '92%', height: 'auto', position: 'relative', zIndex: 1, filter: 'saturate(1.05) contrast(1.05)' }}
+          />
+
+          {/* Right Floating Typography */}
+          <div style={{ position: 'absolute', right: '-10px', top: '36%', textAlign: 'left', zIndex: 2 }}>
+            <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.2em', textTransform: 'uppercase', color: '#52525b', lineHeight: 1.6 }}>
+              SMALL<br />CREATURES.<br /><br />BIGGER<br />STORIES.
+            </div>
+            <div style={{ width: '18px', height: '1.5px', background: '#71717a', marginTop: '10px' }} />
+          </div>
         </div>
+
+        {/* Hero Bottom Bar */}
         <div className="hero-bottom">
           <span>Scroll to explore</span>
           <span className="line" />

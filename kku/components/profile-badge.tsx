@@ -226,11 +226,11 @@ export default function ProfileBadge({ onOpenAuth }: ProfileBadgeProps) {
           right: 0,
           width: '420px',
           maxWidth: 'calc(100vw - 32px)',
-          background: 'var(--background)',
+          background: '#ffffff',
           border: '1px solid var(--border)',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.12)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.22)',
           borderRadius: '12px',
-          zIndex: 1000,
+          zIndex: 99999,
           color: 'var(--foreground)'
         }}
       >

@@ -13,6 +13,7 @@ const rechargeRoutes = require('./routes/rechargeRoutes');
 const simulationRoutes = require('./routes/simulationRoutes');
 const hospitalRoutes = require('./routes/hospitalRoutes');
 const pensionRoutes = require('./routes/pensionRoutes');
+const bankRoutes = require('./routes/bankRoutes');
 const simulationService = require('./services/simulationService');
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api', rechargeRoutes);
 app.use('/api', simulationRoutes);
 app.use('/api/hospital', hospitalRoutes);
 app.use('/api/pension', pensionRoutes);
+app.use('/api/bank', bankRoutes);
 
 // Root endpoint info
 app.get('/', (req, res) => {

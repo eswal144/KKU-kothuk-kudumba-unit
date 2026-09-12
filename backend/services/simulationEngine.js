@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
 const hospitalService = require('./hospitalService');
 const pensionService = require('./pensionService');
+const bankService = require('./bankService');
 dotenv.config();
 
 // ============================================================================
@@ -29,6 +30,7 @@ let leaderboardIntervalId = null;
 let hospitalIntervalId = null;
 let vacancyIntervalId = null;
 let pensionIntervalId = null;
+let bankIntervalId = null;
 let aiReplenishIntervalId = null;
 let isReplenishingAi = false;
 let lastPopRunTimestamp = null;
@@ -879,6 +881,16 @@ function startSimulation() {
       console.error('[Pension Tick Loop Error]:', err.message);
     }
   }, 25000);
+
+  // 8. Start MOSQ-BANK Simulation Loop (Every 20 seconds)
+  bankService.runBankSimulationTick().catch(() => {});
+  bankIntervalId = setInterval(async () => {
+    try {
+      await bankService.runBankSimulationTick();
+    } catch (err) {
+      console.error('[Bank Tick Loop Error]:', err.message);
+    }
+  }, 20000);
 }
 
 function stopSimulation() {
@@ -912,6 +924,11 @@ function stopSimulation() {
   if (pensionIntervalId) {
     clearInterval(pensionIntervalId);
     pensionIntervalId = null;
+  }
+
+  if (bankIntervalId) {
+    clearInterval(bankIntervalId);
+    bankIntervalId = null;
   }
 
   if (aiReplenishIntervalId) {

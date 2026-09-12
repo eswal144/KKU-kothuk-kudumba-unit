@@ -205,6 +205,7 @@ export default function HospitalPage() {
           <a href="/dashboard">Home</a>
           <a href="/hospital" style={{ color: 'var(--mint)', fontWeight: 800 }}>🏥 MOSQ-HOSPITAL</a>
           <a href="/bite-vacancies">Bite Vacancies</a>
+          <a href="/bank">🩸 MOSQ-BANK</a>
           <a href="/pension">🏛️ MOSQ-PENSION</a>
           <a href="/leaderboard">Leaderboard</a>
           <a href="/recharge">🧪 MOSQ-RECHARGE™</a>
@@ -821,6 +822,29 @@ export default function HospitalPage() {
                 <div style={{ marginTop: '12px', fontSize: '9px', textAlign: 'center', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.08em' }}>
                   FICTIONAL RESOURCE SIMULATION
                 </div>
+
+                <a
+                  href="/bank"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    marginTop: '14px',
+                    background: '#10b981',
+                    color: '#070a08',
+                    fontWeight: 800,
+                    fontSize: '11px',
+                    padding: '9px 14px',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    letterSpacing: '.04em',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
+                  }}
+                >
+                  🩸 VIEW MOSQ-BANK &rarr;
+                </a>
               </div>
             </div>
 

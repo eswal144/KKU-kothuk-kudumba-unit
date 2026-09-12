@@ -85,6 +85,10 @@ db.serialize(() => {
   `);
 
   db.run(`ALTER TABLE population_stats ADD COLUMN date TEXT UNIQUE`, () => {});
+  db.run(`ALTER TABLE bank_accounts ADD COLUMN user_id INTEGER`, () => {});
+  db.run(`ALTER TABLE bank_accounts ADD COLUMN resource_balance REAL DEFAULT 3.2`, () => {});
+  db.run(`ALTER TABLE bank_accounts ADD COLUMN community_status TEXT DEFAULT 'STABLE'`, () => {});
+  db.run(`ALTER TABLE bank_accounts ADD COLUMN emergency_reserve TEXT DEFAULT '82%'`, () => {});
 
 
   // 5. Bank Accounts Table
@@ -625,6 +629,115 @@ db.serialize(() => {
       FOREIGN KEY (mosquito_id) REFERENCES mosquito_profiles (id) ON DELETE CASCADE
     )
   `);
+
+  // 24. Blood Bank Reserves Table (Fictional Resource Economy)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS blood_bank_reserves (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reserve_type TEXT UNIQUE NOT NULL,
+      current_amount_ml REAL NOT NULL DEFAULT 0,
+      maximum_capacity_ml REAL NOT NULL DEFAULT 1000,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 25. Blood Bank Transactions Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS blood_bank_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mosquito_id INTEGER,
+      mosquito_code TEXT,
+      transaction_type TEXT NOT NULL,
+      reserve_type TEXT NOT NULL,
+      amount_ml REAL NOT NULL,
+      reason TEXT,
+      status TEXT DEFAULT 'COMPLETED',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 26. Mosquito Bank Stats Table (Donor tracking)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS mosquito_bank_stats (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mosquito_id INTEGER UNIQUE,
+      mosquito_code TEXT UNIQUE,
+      name TEXT,
+      total_donated_ml REAL DEFAULT 0,
+      total_received_ml REAL DEFAULT 0,
+      last_donation_at DATETIME,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 27. Blood Donation Drives Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS blood_donation_drives (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reserve_type TEXT NOT NULL,
+      target_amount_ml REAL NOT NULL,
+      current_amount_ml REAL NOT NULL DEFAULT 0,
+      status TEXT DEFAULT 'ACTIVE',
+      message TEXT,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      ended_at DATETIME,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Seed Blood Bank Reserves (Exact required starting balances: Total 2,847 ml)
+  const defaultReserves = [
+    ['EMERGENCY', 1200.0, 2000.0],
+    ['PENSION', 847.0, 1500.0],
+    ['COMMUNITY', 800.0, 1500.0],
+    ['VETERAN', 0.0, 500.0]
+  ];
+  const resStmt = db.prepare(`
+    INSERT OR IGNORE INTO blood_bank_reserves (reserve_type, current_amount_ml, maximum_capacity_ml)
+    VALUES (?, ?, ?)
+  `);
+  defaultReserves.forEach(r => resStmt.run(...r));
+  resStmt.finalize();
+
+  // Seed Initial Top Donors in mosquito_bank_stats if empty
+  db.get('SELECT COUNT(*) as count FROM mosquito_bank_stats', (err, row) => {
+    if (!err && row && row.count === 0) {
+      const donorStmt = db.prepare(`
+        INSERT INTO mosquito_bank_stats (mosquito_code, name, total_donated_ml, total_received_ml, last_donation_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `);
+      donorStmt.run('M0S-019', 'General Wingston', 42.0, 0);
+      donorStmt.run('M0S-081', 'Baroness Buzz', 37.0, 0);
+      donorStmt.run('M0S-122', 'Inspector Proboscis', 29.0, 0);
+      donorStmt.run('M0S-042', 'Count Bitey', 18.5, 0);
+      donorStmt.run('M0S-112', 'Bite Tyson', 12.0, 2.3);
+      donorStmt.finalize();
+    }
+  });
+
+  // Seed Initial Transactions if empty
+  db.get('SELECT COUNT(*) as count FROM blood_bank_transactions', (err, row) => {
+    if (!err && row && row.count === 0) {
+      const txStmt = db.prepare(`
+        INSERT INTO blood_bank_transactions (mosquito_code, transaction_type, reserve_type, amount_ml, reason, status)
+        VALUES (?, ?, ?, ?, ?, 'COMPLETED')
+      `);
+      txStmt.run('M0S-042', 'DONATION', 'COMMUNITY', 1.0, 'Community blood donation');
+      txStmt.run('M0S-271', 'EMERGENCY_ALLOCATION', 'EMERGENCY', -2.4, 'Hospital emergency support');
+      txStmt.run('M0S-112', 'PENSION_ALLOCATION', 'PENSION', -2.3, 'Monthly pension allocation');
+      txStmt.finalize();
+    }
+  });
+
+  // Seed sample donation drive if empty
+  db.get('SELECT COUNT(*) as count FROM blood_donation_drives', (err, row) => {
+    if (!err && row && row.count === 0) {
+      db.run(`
+        INSERT INTO blood_donation_drives (reserve_type, target_amount_ml, current_amount_ml, status, message)
+        VALUES ('PENSION', 214.0, 83.0, 'ACTIVE', 'Mosq-Net needs you. Stabilize the pension reserve for aging night biter veterans.')
+      `);
+    }
+  });
 });
 
 module.exports = db;
