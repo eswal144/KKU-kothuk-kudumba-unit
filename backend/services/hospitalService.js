@@ -89,35 +89,28 @@ async function getHospitalEvents(limit = 30) {
   });
 }
 
-// 4. Get Blood Storage Reserve
+// 4. Get Blood Storage Reserve (Synchronized with MOSQ-BANK Overview)
 async function getBloodReserve() {
-  return new Promise((resolve, reject) => {
-    db.get('SELECT * FROM blood_reserve ORDER BY id ASC LIMIT 1', [], (err, row) => {
-      if (err || !row) {
-        return resolve({
-          currentMl: 824.6,
-          capacityMl: 1000.0,
-          percentage: 82.5,
-          status: 'STABLE'
-        });
-      }
+  const bankService = require('./bankService');
+  const overview = await bankService.getBankOverview();
+  const emergency = overview.reservesDetailed && overview.reservesDetailed['EMERGENCY'] ? overview.reservesDetailed['EMERGENCY'] : {
+    current: overview.reserves?.emergency || 1122.1,
+    capacity: 2000.0,
+    percentage: 56,
+    status: 'LOW'
+  };
 
-      const current = Math.round(row.current_amount_ml * 10) / 10;
-      const capacity = row.maximum_capacity_ml || 1000.0;
-      const percentage = Math.round((current / capacity) * 100);
-
-      let status = 'STABLE';
-      if (percentage < 10) status = 'CRITICAL';
-      else if (percentage < 30) status = 'LOW';
-
-      resolve({
-        currentMl: current,
-        capacityMl: capacity,
-        percentage,
-        status
-      });
-    });
-  });
+  return {
+    currentMl: emergency.current,
+    capacityMl: emergency.capacity,
+    percentage: emergency.percentage,
+    status: emergency.status,
+    reserveType: 'EMERGENCY',
+    totalStored: overview.totalStored,
+    totalCapacity: 5500.0,
+    reserves: overview.reserves,
+    reservesDetailed: overview.reservesDetailed
+  };
 }
 
 // 5. Admit a Citizen into the Hospital
@@ -297,17 +290,51 @@ async function runHospitalSimulationTick() {
       }
     });
 
-    // C. Blood Reserve Fluctuation (+10/-5 mL simulation)
-    const reserveDelta = (Math.random() > 0.45 ? 1 : -1) * (Math.round((1 + Math.random() * 5) * 10) / 10);
-    db.run(`
-      UPDATE blood_reserve 
-      SET current_amount_ml = MAX(50.0, MIN(maximum_capacity_ml, current_amount_ml + ?)), updated_at = CURRENT_TIMESTAMP
-      WHERE id = 1
-    `, [reserveDelta], () => {});
+    // C. Blood Reserve Fluctuation & Transfusion (Synchronized with blood_bank_reserves EMERGENCY pool)
+    const isTransfusion = Math.random() > 0.40;
+    const amount = Math.round((0.4 + Math.random() * 1.8) * 10) / 10;
+
+    if (isTransfusion) {
+      // Emergency Transfusion for an active patient
+      const targetPatient = active.find(p => p.status === 'CRITICAL' || p.status === 'INJURED') || active[0];
+      const patientName = targetPatient ? targetPatient.name : 'ICU Citizen';
+      const patientCode = targetPatient ? targetPatient.patient_code : 'MOS-ICU';
+
+      db.run(`
+        UPDATE blood_bank_reserves 
+        SET current_amount_ml = MAX(50.0, current_amount_ml - ?), updated_at = CURRENT_TIMESTAMP
+        WHERE reserve_type = 'EMERGENCY'
+      `, [amount], () => {
+        db.run(`
+          INSERT INTO blood_bank_transactions 
+          (mosquito_code, transaction_type, reserve_type, amount_ml, reason, status)
+          VALUES (?, 'EMERGENCY_ALLOCATION', 'EMERGENCY', ?, ?, 'COMPLETED')
+        `, [patientCode, -amount, `Emergency ICU transfusion for ${patientName} (${targetPatient ? targetPatient.condition : 'Critical Care'})`], () => {});
+      });
+    } else {
+      // Replenishment from field collection quota
+      db.run(`
+        UPDATE blood_bank_reserves 
+        SET current_amount_ml = MIN(maximum_capacity_ml, current_amount_ml + ?), updated_at = CURRENT_TIMESTAMP
+        WHERE reserve_type = 'EMERGENCY'
+      `, [amount], () => {
+        db.run(`
+          INSERT INTO blood_bank_transactions 
+          (mosquito_code, transaction_type, reserve_type, amount_ml, reason, status)
+          VALUES ('MOS-SUPPLY', 'EMERGENCY_REPLENISH', 'EMERGENCY', ?, 'Field supply quota transfusion replenishment', 'COMPLETED')
+        `, [amount], () => {});
+      });
+    }
 
   } catch (err) {
     console.error('❌ [MOSQ-HOSPITAL Simulation Error]:', err.message);
   }
+}
+
+// 7. Direct Blood Donation from Hospital UI (Calls MOSQ-BANK with EMERGENCY target)
+async function donateHospitalBlood(userId, amountMl) {
+  const bankService = require('./bankService');
+  return bankService.addDonation(userId, amountMl, 'EMERGENCY');
 }
 
 // Reset database to exactly 5 active patients and seed rich maternity/critical events
@@ -376,6 +403,7 @@ module.exports = {
   getHospitalEvents,
   getBloodReserve,
   admitPatient,
+  donateHospitalBlood,
   runHospitalSimulationTick,
   resetTo5ActivePatients
 };

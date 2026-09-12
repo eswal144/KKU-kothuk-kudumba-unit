@@ -70,3 +70,23 @@ exports.admitCitizen = async (req, res) => {
     res.status(500).json({ error: 'Failed to record hospital admission.' });
   }
 };
+
+// 6. POST /api/hospital/donate (Donate blood directly to MOSQ-BANK Emergency Reserve)
+exports.donateBlood = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User authentication required.' });
+    }
+    const { amountMl } = req.body;
+    if (!amountMl || parseFloat(amountMl) <= 0) {
+      return res.status(400).json({ error: 'Please provide a valid blood donation volume in mL.' });
+    }
+
+    const result = await hospitalService.donateHospitalBlood(userId, amountMl);
+    res.json(result);
+  } catch (err) {
+    console.error('Error in hospital blood donation:', err);
+    res.status(400).json({ error: err.message || 'Failed to process emergency blood donation.' });
+  }
+};

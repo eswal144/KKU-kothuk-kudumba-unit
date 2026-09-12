@@ -41,7 +41,15 @@ interface BloodReserve {
   currentMl: number
   capacityMl: number
   percentage: number
-  status: 'STABLE' | 'LOW' | 'CRITICAL'
+  status: 'STABLE' | 'LOW' | 'CRITICAL' | 'WARNING' | 'EMPTY'
+  totalStored?: number
+  totalCapacity?: number
+  reserves?: {
+    emergency: number
+    pension: number
+    community: number
+    veteran: number
+  }
 }
 
 interface HospitalEvent {
@@ -77,6 +85,12 @@ export default function HospitalPage() {
   const [admitSubmitting, setAdmitSubmitting] = useState(false)
   const [admitToast, setAdmitToast] = useState<string | null>(null)
 
+  // Emergency ICU Blood Donation Modal State (Synchronized with MOSQ-BANK)
+  const [isDonateModalOpen, setIsDonateModalOpen] = useState(false)
+  const [donateAmount, setDonateAmount] = useState<number>(1.0)
+  const [donateSubmitting, setDonateSubmitting] = useState(false)
+  const [donateToast, setDonateToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
   // Fetch hospital data from SQLite API
   const fetchHospitalData = async (isInitial = false) => {
     try {
@@ -105,12 +119,12 @@ export default function HospitalPage() {
     }
   }
 
-  // Initial fetch and 3.5s live polling loop
+  // Initial fetch and 2.0s live polling loop (strictly synchronized with MOSQ-BANK)
   useEffect(() => {
     fetchHospitalData(true)
     const interval = setInterval(() => {
       fetchHospitalData(false)
-    }, 3500)
+    }, 2000)
 
     return () => clearInterval(interval)
   }, [])
@@ -180,6 +194,51 @@ export default function HospitalPage() {
       setAdmitToast('Network error while requesting hospital admission.')
     } finally {
       setAdmitSubmitting(false)
+    }
+  }
+
+  // Handle emergency blood donation directly to MOSQ-BANK Emergency Reserve
+  const handleDonateBlood = async (amount: number) => {
+    const token = localStorage.getItem('kku_token')
+    if (!token) {
+      router.push('/')
+      return
+    }
+
+    setDonateSubmitting(true)
+    setDonateToast(null)
+
+    try {
+      const res = await fetch(`${API_BASE}/hospital/donate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ amountMl: amount })
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setDonateToast({
+          type: 'success',
+          message: data.message || `Transfused ${amount.toFixed(1)} mL directly into MOSQ-BANK Emergency Reserve!`
+        })
+        setIsDonateModalOpen(false)
+        fetchHospitalData(false)
+      } else {
+        setDonateToast({
+          type: 'error',
+          message: data.error || 'Emergency donation could not be processed.'
+        })
+      }
+    } catch {
+      setDonateToast({
+        type: 'error',
+        message: 'Network error during emergency blood donation.'
+      })
+    } finally {
+      setDonateSubmitting(false)
     }
   }
 
@@ -701,7 +760,7 @@ export default function HospitalPage() {
           {/* RIGHT: BLOOD STORAGE TANK & FULL RECENT ACTIVITY */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-            {/* BLOOD STORAGE TANK */}
+            {/* BLOOD STORAGE TANK - MOSQ-BANK SYNCHRONIZED */}
             <div
               style={{
                 background: '#ffffff',
@@ -713,11 +772,17 @@ export default function HospitalPage() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Droplet size={16} style={{ color: '#dc2626' }} />
-                  <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '.04em' }}>
-                    🩸 KKU BLOOD RESERVE
-                  </h4>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Droplet size={16} style={{ color: '#dc2626' }} />
+                    <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '.04em' }}>
+                      🩸 MOSQ-NET BLOOD STORAGE
+                    </h4>
+                  </div>
+                  <div style={{ fontSize: '9px', color: 'var(--dim)', fontWeight: 700, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--mint)' }} />
+                    LIVE 100% SYNCHRONIZED WITH /BANK
+                  </div>
                 </div>
 
                 {bloodReserve && (
@@ -737,7 +802,23 @@ export default function HospitalPage() {
                 )}
               </div>
 
-              {/* Stylized Visual Tank */}
+              {/* Total Mosq-Net Blood Stored Banner (Matching /bank) */}
+              <div style={{ background: '#f8faf9', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 14px', marginBottom: '14px' }}>
+                <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--dim)', fontWeight: 800 }}>
+                  TOTAL MOSQ-NET BLOOD STORED
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '2px' }}>
+                  <span style={{ fontSize: '26px', fontWeight: 900, color: 'var(--foreground)', letterSpacing: '-.02em' }}>
+                    {bloodReserve?.totalStored?.toLocaleString() || '2,814.8'}
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#dc2626' }}>mL</span>
+                  <span style={{ fontSize: '10px', color: 'var(--dim)', marginLeft: 'auto' }}>
+                    Across 4 Reserves
+                  </span>
+                </div>
+              </div>
+
+              {/* Stylized Visual Tank for ICU Emergency Allocation */}
               <div
                 style={{
                   background: '#050806',
@@ -751,19 +832,19 @@ export default function HospitalPage() {
               >
                 <div style={{ textAlign: 'center', marginBottom: '12px' }}>
                   <span style={{ fontSize: '10px', color: '#8b9891', textTransform: 'uppercase', letterSpacing: '.1em' }}>
-                    CURRENT TANK RESERVE
+                    🚑 ICU EMERGENCY RESERVE
                   </span>
                   <div style={{ fontSize: '28px', fontWeight: 900, color: '#f87171', textShadow: '0 0 16px rgba(248,113,113,0.4)', marginTop: '2px' }}>
                     {bloodReserve?.currentMl.toFixed(1)} <span style={{ fontSize: '15px' }}>mL</span>
                   </div>
                   <span style={{ fontSize: '11px', color: '#9ca3af' }}>
-                    / {bloodReserve?.capacityMl} mL Maximum Capacity
+                    / {bloodReserve?.capacityMl || 2000} mL Maximum Capacity ({bloodReserve?.percentage || 56}%)
                   </span>
                 </div>
 
                 <div
                   style={{
-                    height: '110px',
+                    height: '95px',
                     width: '100%',
                     background: 'rgba(255,255,255,0.03)',
                     borderRadius: '8px',
@@ -779,10 +860,10 @@ export default function HospitalPage() {
                   <div
                     style={{
                       width: '100%',
-                      height: `${bloodReserve?.percentage || 82}%`,
+                      height: `${bloodReserve?.percentage || 56}%`,
                       background: 'linear-gradient(180deg, #ef4444 0%, #991b1b 100%)',
                       boxShadow: '0 0 20px rgba(239, 68, 68, 0.6)',
-                      transition: 'height 1s cubic-bezier(0.16, 1, 0.3, 1)',
+                      transition: 'height 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
                       position: 'relative'
                     }}
                   >
@@ -807,20 +888,79 @@ export default function HospitalPage() {
                       transform: 'translate(-50%, -50%)',
                       background: 'rgba(0,0,0,0.65)',
                       backdropFilter: 'blur(4px)',
-                      padding: '4px 10px',
+                      padding: '3px 9px',
                       borderRadius: '12px',
-                      fontSize: '12px',
+                      fontSize: '11px',
                       fontWeight: 800,
                       color: '#ffffff',
                       border: '1px solid rgba(255,255,255,0.15)'
                     }}
                   >
-                    {bloodReserve?.percentage}% LEVEL
+                    {bloodReserve?.percentage}% ICU LEVEL
                   </div>
                 </div>
 
-                <div style={{ marginTop: '12px', fontSize: '9px', textAlign: 'center', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.08em' }}>
-                  FICTIONAL RESOURCE SIMULATION
+                {/* 3 Specialized Reserves Synchronized Breakdown */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginTop: '12px' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', padding: '6px 8px', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '8px', color: '#9ca3af', textTransform: 'uppercase' }}>🚑 ICU</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#f87171' }}>{bloodReserve?.currentMl.toFixed(1)} mL</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', padding: '6px 8px', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '8px', color: '#9ca3af', textTransform: 'uppercase' }}>👴 PENSION</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#fbbf24' }}>{bloodReserve?.reserves?.pension?.toFixed(1) || '847.0'} mL</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '6px', padding: '6px 8px', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '8px', color: '#9ca3af', textTransform: 'uppercase' }}>🦟 COMM</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#34d399' }}>{bloodReserve?.reserves?.community?.toFixed(1) || '845.7'} mL</div>
+                  </div>
+                </div>
+
+                {/* Quick ICU Blood Transfusion Action */}
+                <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', padding: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontSize: '10px', color: '#9ca3af', fontWeight: 700, marginBottom: '6px', textAlign: 'center' }}>
+                    ⚡ QUICK EMERGENCY DONATION TO ICU:
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+                    {[0.5, 1.0, 2.0].map((amt) => (
+                      <button
+                        key={amt}
+                        onClick={() => handleDonateBlood(amt)}
+                        disabled={donateSubmitting}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.4)',
+                          color: '#fca5a5',
+                          borderRadius: '4px',
+                          padding: '5px 4px',
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          cursor: donateSubmitting ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        +{amt.toFixed(1)} mL
+                      </button>
+                    ))}
+                  </div>
+
+                  {donateToast && (
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        padding: '6px 8px',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        textAlign: 'center',
+                        background: donateToast.type === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        color: donateToast.type === 'success' ? '#6ee7b7' : '#fca5a5',
+                        border: `1px solid ${donateToast.type === 'success' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`
+                      }}
+                    >
+                      {donateToast.message}
+                    </div>
+                  )}
                 </div>
 
                 <a
@@ -830,12 +970,12 @@ export default function HospitalPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px',
-                    marginTop: '14px',
+                    marginTop: '12px',
                     background: '#10b981',
                     color: '#070a08',
                     fontWeight: 800,
                     fontSize: '11px',
-                    padding: '9px 14px',
+                    padding: '8px 12px',
                     borderRadius: '6px',
                     textDecoration: 'none',
                     letterSpacing: '.04em',
@@ -843,7 +983,7 @@ export default function HospitalPage() {
                     boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)'
                   }}
                 >
-                  🩸 VIEW MOSQ-BANK &rarr;
+                  🩸 VIEW MOSQ-BANK FULL VAULT &rarr;
                 </a>
               </div>
             </div>

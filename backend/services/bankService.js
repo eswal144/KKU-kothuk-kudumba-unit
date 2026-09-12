@@ -139,41 +139,50 @@ async function getMyDonationStatus(userId) {
   });
 }
 
-// 4. ADD DONATION (JWT Authenticated)
-async function addDonation(userId, amountMl) {
+// 4. ADD DONATION (JWT Authenticated - Supports COMMUNITY, EMERGENCY, PENSION)
+async function addDonation(userId, amountMl, targetReserve = 'COMMUNITY') {
   return new Promise(async (resolve, reject) => {
     const amount = parseFloat(amountMl);
     if (isNaN(amount) || amount <= 0 || amount > 10.0) {
       return reject(new Error('Invalid donation amount. Must be between 0.1 mL and 10.0 mL.'));
     }
 
+    const validReserves = ['COMMUNITY', 'EMERGENCY', 'PENSION', 'VETERAN'];
+    const chosenReserve = validReserves.includes(targetReserve.toUpperCase()) ? targetReserve.toUpperCase() : 'COMMUNITY';
+
     try {
       const myStatus = await getMyDonationStatus(userId);
       const mosquitoCode = myStatus.mosquitoCode || `M0S-${userId}`;
       const name = myStatus.name || 'Citizen Mosquito';
 
-      // SQLite Transaction: update reserve + transaction + donor stats
+      // SQLite Transaction: update chosen reserve + transaction + donor stats
       db.serialize(() => {
         db.run('BEGIN TRANSACTION');
 
-        // A. Add to COMMUNITY reserve
+        // A. Add to chosen reserve (e.g., EMERGENCY or COMMUNITY)
         db.run(`
           UPDATE blood_bank_reserves 
           SET current_amount_ml = MIN(maximum_capacity_ml, current_amount_ml + ?),
               updated_at = CURRENT_TIMESTAMP
-          WHERE reserve_type = 'COMMUNITY'
-        `, [amount], function (resErr) {
+          WHERE reserve_type = ?
+        `, [amount, chosenReserve], function (resErr) {
           if (resErr) {
             db.run('ROLLBACK');
             return reject(resErr);
           }
 
+          const donationReason = chosenReserve === 'EMERGENCY'
+            ? 'Emergency ICU clinical blood donation'
+            : chosenReserve === 'PENSION'
+            ? 'Senior mosquito pension blood donation'
+            : 'Community welfare blood donation';
+
           // B. Record Transaction
           db.run(`
             INSERT INTO blood_bank_transactions 
             (mosquito_id, mosquito_code, transaction_type, reserve_type, amount_ml, reason, status)
-            VALUES (?, ?, 'DONATION', 'COMMUNITY', ?, 'Community blood donation', 'COMPLETED')
-          `, [myStatus.mosquitoId || userId, mosquitoCode, amount], function (txErr) {
+            VALUES (?, ?, 'DONATION', ?, ?, ?, 'COMPLETED')
+          `, [myStatus.mosquitoId || userId, mosquitoCode, chosenReserve, amount, donationReason], function (txErr) {
             if (txErr) {
               db.run('ROLLBACK');
               return reject(txErr);
@@ -202,23 +211,23 @@ async function addDonation(userId, amountMl) {
                 UPDATE blood_donation_drives
                 SET current_amount_ml = MIN(target_amount_ml, current_amount_ml + ?),
                     updated_at = CURRENT_TIMESTAMP
-                WHERE status = 'ACTIVE'
-              `, [amount], () => {});
+                WHERE status = 'ACTIVE' AND (reserve_type = ? OR ? = 'COMMUNITY')
+              `, [amount, chosenReserve, chosenReserve], () => {});
 
-              // E. Synchronize legacy hospital blood_reserve
+              // E. Synchronize legacy hospital blood_reserve if EMERGENCY or COMMUNITY
               db.run(`
                 UPDATE blood_reserve 
                 SET current_amount_ml = MIN(maximum_capacity_ml, current_amount_ml + ?), updated_at = CURRENT_TIMESTAMP
                 WHERE id = 1
-              `, [amount * 0.5], () => {});
+              `, [amount], () => {});
 
               db.run('COMMIT', async () => {
                 // Generate narrative message via Groq AI or fallback
-                let notificationMsg = `🩸 DONATION SUCCESSFUL: ${mosquitoCode} contributed ${amount.toFixed(1)} mL to Community Reserve. Thank you for supporting the Mosq-Net community.`;
+                let notificationMsg = `🩸 DONATION SUCCESSFUL: ${mosquitoCode} contributed ${amount.toFixed(1)} mL directly to ${chosenReserve} Reserve. Thank you for supporting the Mosq-Net community.`;
                 try {
                   const groqRes = await groqSimulationService.generateEventNarrative(
                     'BLOOD_DONATION',
-                    `${name} (${mosquitoCode}) donated ${amount.toFixed(1)} mL of blood to Mosq-Net Community Reserve.`
+                    `${name} (${mosquitoCode}) donated ${amount.toFixed(1)} mL of blood to Mosq-Net ${chosenReserve} Reserve.`
                   );
                   if (groqRes && groqRes.narrative) {
                     notificationMsg = groqRes.narrative;
@@ -228,7 +237,7 @@ async function addDonation(userId, amountMl) {
                 // Log event in hospital/events
                 db.run(`
                   INSERT INTO hospital_events (event_type, icon, title, message, patient_name)
-                  VALUES ('BANK_DONATION', '🩸', 'BLOOD DONATION RECEIVED', ?, ?)
+                  VALUES ('BANK_DONATION', '🩸', '${chosenReserve === 'EMERGENCY' ? 'EMERGENCY BLOOD DONATED' : 'BLOOD DONATION RECEIVED'}', ?, ?)
                 `, [notificationMsg, name], () => {});
 
                 // Log event in social_notifications for user dashboard
@@ -240,7 +249,7 @@ async function addDonation(userId, amountMl) {
                 resolve({
                   success: true,
                   amountDonated: amount,
-                  reserve: 'COMMUNITY',
+                  reserve: chosenReserve,
                   mosquitoCode,
                   message: notificationMsg
                 });
@@ -374,7 +383,7 @@ async function allocatePensionBlood(mosquitoCode, amountMl, reason = 'Monthly pe
   });
 }
 
-// 8. SIMULATION ENGINE TICK (Called every ~20-30s from centralized engine)
+// 8. SIMULATION ENGINE TICK (Called every ~25-30s from centralized engine)
 async function runBankSimulationTick() {
   try {
     // A. Check if donation drives are fulfilled
@@ -392,10 +401,8 @@ async function runBankSimulationTick() {
       }
     });
 
-    // B. Minor dynamic simulation event (Community donation or hospital emergency allocation)
-    const rand = Math.random();
-    if (rand > 0.7) {
-      // Automatic simulation community donation (+0.5 to 1.5 mL)
+    // B. Occasional community donation (+0.5 to 1.5 mL)
+    if (Math.random() > 0.65) {
       const donationAmt = Math.round((0.5 + Math.random() * 1.0) * 10) / 10;
       const donors = ['M0S-042', 'M0S-081', 'M0S-119', 'M0S-204', 'M0S-331'];
       const donorCode = donors[Math.floor(Math.random() * donors.length)];
@@ -411,13 +418,6 @@ async function runBankSimulationTick() {
           VALUES (?, 'DONATION', 'COMMUNITY', ?, 'Civilian community donation', 'COMPLETED')
         `, [donorCode, donationAmt], () => {});
       });
-    } else if (rand < 0.3) {
-      // Automatic emergency allocation for hospital patient (-1.2 to 2.4 mL)
-      const allocAmt = Math.round((1.2 + Math.random() * 1.2) * 10) / 10;
-      const criticalPatients = ['M0S-104', 'M0S-805', 'M0S-271', 'M0S-663'];
-      const patientCode = criticalPatients[Math.floor(Math.random() * criticalPatients.length)];
-
-      allocateEmergencyBlood(patientCode, allocAmt, 'Emergency clinical transfusion').catch(() => {});
     }
   } catch (err) {
     console.error('❌ [MOSQ-BANK Simulation Tick Error]:', err.message);

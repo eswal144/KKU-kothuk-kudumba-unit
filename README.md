@@ -10,9 +10,8 @@
 ### Team Name: `200 ok`
 
 ### Team Members
-- **Team Lead:** [SREERAG A.S] - [Institute of Engineering and Technology Kohinoor Calicut University]
-- **Member 2:** [SREERAG A.S] - [Institute of Engineering and Technology Kohinoor Calicut University]
-- **Member 3:** [Eswal Narayanan] - [Institute of Engineering and Technology Kohinoor Calicut University]
+- **Member 1:** [SREERAG A.S] - [Institute of Engineering and Technology Kohinoor Calicut University]
+- **Member 2:** [Eswal Narayanan] - [Institute of Engineering and Technology Kohinoor Calicut University]
 
 ---
 

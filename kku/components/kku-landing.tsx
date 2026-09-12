@@ -57,16 +57,16 @@ export default function KkuLanding() {
         <ProfileBadge onOpenAuth={openAuth} />
       </nav>
 
-      <section className="kku-hero" id="top" style={{ minHeight: 'calc(100svh - 78px)', display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div className="hero-copy" style={{ maxWidth: '600px', zIndex: 2 }}>
+      <section className="kku-hero" id="top" style={{ minHeight: 'calc(100vh - 78px)', padding: '40px 6vw 50px', display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 1fr)', alignItems: 'center', gap: '50px', position: 'relative', overflow: 'hidden' }}>
+        <div className="hero-copy" style={{ maxWidth: '640px', zIndex: 2, marginTop: 0 }}>
           {/* Eyebrow badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px', fontSize: '10px', fontWeight: 800, letterSpacing: '.18em', color: '#047857', textTransform: 'uppercase' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#047857', display: 'inline-block' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px', fontSize: '11px', fontWeight: 800, letterSpacing: '.2em', color: '#047857', textTransform: 'uppercase' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#047857', display: 'inline-block' }} />
             <span>LIVE SIMULATION ACTIVE &bull; GROQ AI</span>
           </div>
 
           {/* Main Headline */}
-          <h1 style={{ fontSize: 'clamp(3.4rem, 6.4vw, 5.8rem)', fontWeight: 300, letterSpacing: '-.03em', lineHeight: 0.96, margin: '0 0 24px', color: '#1c1917' }}>
+          <h1 style={{ fontSize: 'clamp(3.6rem, 6.6vw, 6.2rem)', fontWeight: 300, letterSpacing: '-.035em', lineHeight: 0.94, margin: '0 0 24px', color: '#1c1917' }}>
             The digital<br />
             home<br />
             <span style={{ color: '#047857', fontWeight: 800 }}>
@@ -76,28 +76,28 @@ export default function KkuLanding() {
           </h1>
 
           {/* Sub-headline lede */}
-          <p style={{ color: '#52525b', fontSize: '15px', lineHeight: 1.6, maxWidth: '440px', margin: '0 0 32px' }}>
+          <p style={{ color: '#52525b', fontSize: '16px', lineHeight: 1.65, maxWidth: '480px', margin: '0 0 36px' }}>
             A connected ecosystem for the world&apos;s most misunderstood community. Identity, care, work, and a live AI-simulated civilization.
           </p>
 
           {/* Pill CTA Button */}
-          <div style={{ marginBottom: '40px' }}>
+          <div style={{ marginBottom: '44px' }}>
             <button
               onClick={() => isLoggedIn ? router.push('/dashboard') : openAuth('register')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '12px',
-                padding: '14px 28px',
+                gap: '14px',
+                padding: '16px 34px',
                 background: '#047857',
                 color: '#ffffff',
-                fontSize: '13px',
+                fontSize: '15px',
                 fontWeight: 700,
                 letterSpacing: '.03em',
                 borderRadius: '9999px',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 8px 24px rgba(4, 120, 87, 0.28)',
+                boxShadow: '0 10px 30px rgba(4, 120, 87, 0.32)',
                 transition: 'all .25s ease'
               }}
               onMouseEnter={(e) => {
@@ -110,51 +110,51 @@ export default function KkuLanding() {
               }}
             >
               <span>Explore the Simulation</span>
-              <span style={{ fontSize: '15px' }}>&rarr;</span>
+              <span style={{ fontSize: '18px' }}>&rarr;</span>
             </button>
           </div>
 
           {/* 3 Metric Columns with Left Dividers */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '28px', flexWrap: 'wrap' }}>
-            <div style={{ borderLeft: '1.5px solid #d1d5db', paddingLeft: '12px' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: '#047857', letterSpacing: '-.02em', lineHeight: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '36px', flexWrap: 'wrap' }}>
+            <div style={{ borderLeft: '2px solid #d1d5db', paddingLeft: '16px' }}>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: '#047857', letterSpacing: '-.02em', lineHeight: 1 }}>
                 1M+
               </div>
-              <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#71717a', marginTop: '4px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#71717a', marginTop: '6px' }}>
                 SIMULATED
               </div>
             </div>
 
-            <div style={{ borderLeft: '1.5px solid #d1d5db', paddingLeft: '12px' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: '#047857', letterSpacing: '-.02em', lineHeight: 1 }}>
+            <div style={{ borderLeft: '2px solid #d1d5db', paddingLeft: '16px' }}>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: '#047857', letterSpacing: '-.02em', lineHeight: 1 }}>
                 24/7
               </div>
-              <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#71717a', marginTop: '4px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#71717a', marginTop: '6px' }}>
                 LIVE ECOSYSTEM
               </div>
             </div>
 
-            <div style={{ borderLeft: '1.5px solid #d1d5db', paddingLeft: '12px' }}>
-              <div style={{ fontSize: '20px', fontWeight: 800, color: '#047857', letterSpacing: '-.02em', lineHeight: 1 }}>
+            <div style={{ borderLeft: '2px solid #d1d5db', paddingLeft: '16px' }}>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: '#047857', letterSpacing: '-.02em', lineHeight: 1 }}>
                 100%
               </div>
-              <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: '#71717a', marginTop: '4px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.16em', textTransform: 'uppercase', color: '#71717a', marginTop: '6px' }}>
                 AI POWERED
               </div>
             </div>
           </div>
         </div>
 
-        {/* Hero Artwork with Radial Sage Disc, Orbit & Side Text */}
-        <div className="hero-art" style={{ position: 'absolute', right: '4vw', top: '50%', transform: 'translateY(-50%)', width: 'min(48vw, 620px)', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Hero Artwork with Large Radial Sage Disc, Orbit & Side Text */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%', height: '100%' }}>
           {/* Soft Sage Disc Glow */}
           <div
             style={{
               position: 'absolute',
-              width: '85%',
-              height: '85%',
+              width: '540px',
+              height: '540px',
               borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(5, 150, 105, 0.18) 0%, rgba(5, 150, 105, 0.04) 65%, transparent 75%)',
+              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0.05) 60%, transparent 72%)',
               pointerEvents: 'none'
             }}
           />
@@ -163,10 +163,10 @@ export default function KkuLanding() {
           <div
             style={{
               position: 'absolute',
-              width: '88%',
-              height: '88%',
+              width: '560px',
+              height: '560px',
               borderRadius: '50%',
-              border: '1px solid rgba(4, 120, 87, 0.25)',
+              border: '1.5px solid rgba(4, 120, 87, 0.25)',
               pointerEvents: 'none'
             }}
           >
@@ -174,38 +174,45 @@ export default function KkuLanding() {
             <span
               style={{
                 position: 'absolute',
-                top: '14%',
-                right: '14%',
-                width: '7px',
-                height: '7px',
+                top: '35px',
+                right: '85px',
+                width: '9px',
+                height: '9px',
                 borderRadius: '50%',
                 background: '#047857',
-                boxShadow: '0 0 10px rgba(4, 120, 87, 0.5)'
+                boxShadow: '0 0 10px rgba(4, 120, 87, 0.6)'
               }}
             />
           </div>
 
-          {/* High-res Mosquito image */}
-          <img
-            src="/kku-mosquito.png"
-            alt="A mosquito suspended in the KKU system"
-            style={{ width: '92%', height: 'auto', position: 'relative', zIndex: 1, filter: 'saturate(1.05) contrast(1.05)' }}
-          />
+          {/* Circular Frame for Clean Macro Photo */}
+          <div
+            style={{
+              width: '480px',
+              height: '480px',
+              maxWidth: '44vw',
+              maxHeight: '44vw',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              position: 'relative',
+              zIndex: 1,
+              boxShadow: '0 20px 45px rgba(4, 120, 87, 0.15)'
+            }}
+          >
+            <img
+              src="/kku-mosquito.png"
+              alt="A mosquito suspended in the KKU system"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'saturate(1.05) contrast(1.05)' }}
+            />
+          </div>
 
           {/* Right Floating Typography */}
-          <div style={{ position: 'absolute', right: '-10px', top: '36%', textAlign: 'left', zIndex: 2 }}>
-            <div style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '.2em', textTransform: 'uppercase', color: '#52525b', lineHeight: 1.6 }}>
+          <div style={{ position: 'absolute', right: '-20px', top: '38%', textAlign: 'left', zIndex: 2 }}>
+            <div style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '.2em', textTransform: 'uppercase', color: '#52525b', lineHeight: 1.6 }}>
               SMALL<br />CREATURES.<br /><br />BIGGER<br />STORIES.
             </div>
-            <div style={{ width: '18px', height: '1.5px', background: '#71717a', marginTop: '10px' }} />
+            <div style={{ width: '22px', height: '1.5px', background: '#71717a', marginTop: '12px' }} />
           </div>
-        </div>
-
-        {/* Hero Bottom Bar */}
-        <div className="hero-bottom">
-          <span>Scroll to explore</span>
-          <span className="line" />
-          <span>01 — 04</span>
         </div>
       </section>
 

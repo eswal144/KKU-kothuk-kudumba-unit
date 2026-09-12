@@ -99,6 +99,7 @@ export default function MosqBankPage() {
   // Donation form state
   const [selectedAmount, setSelectedAmount] = useState<number>(1.0)
   const [customAmount, setCustomAmount] = useState<string>('')
+  const [targetReserve, setTargetReserve] = useState<'EMERGENCY' | 'COMMUNITY' | 'PENSION'>('EMERGENCY')
   const [isSubmittingDonation, setIsSubmittingDonation] = useState(false)
   const [donationToast, setDonationToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
@@ -150,12 +151,12 @@ export default function MosqBankPage() {
     }
   }, [router])
 
-  // Polling loop every 12 seconds
+  // Live polling loop every 2.0 seconds (strictly synchronized with MOSQ-HOSPITAL)
   useEffect(() => {
     fetchBankData(true)
     const interval = setInterval(() => {
       fetchBankData(false)
-    }, 12000)
+    }, 2000)
 
     return () => clearInterval(interval)
   }, [fetchBankData])
@@ -184,14 +185,14 @@ export default function MosqBankPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ amountMl: amount })
+        body: JSON.stringify({ amountMl: amount, reserveType: targetReserve })
       })
 
       const data = await res.json()
       if (res.ok && data.success) {
         setDonationToast({
           type: 'success',
-          message: `🩸 DONATION SUCCESSFUL: ${amount.toFixed(1)} mL added to Community Reserve. Thank you for supporting the Mosq-Net community.`
+          message: data.message || `🩸 DONATION SUCCESSFUL: ${amount.toFixed(1)} mL added directly to ${targetReserve} Reserve.`
         })
         setCustomAmount('')
         fetchBankData(false)
@@ -731,6 +732,45 @@ export default function MosqBankPage() {
                   <span>{donationToast.message}</span>
                 </div>
               )}
+
+              {/* Target Reserve Destination Selector */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--foreground)', marginBottom: '8px' }}>
+                  Choose Destination Reserve:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+                  {[
+                    { id: 'EMERGENCY', label: '🚑 Emergency ICU', sub: 'MOSQ-HOSPITAL Synced', color: '#dc2626' },
+                    { id: 'COMMUNITY', label: '🦟 Community', sub: 'Swarm Welfare', color: 'var(--mint)' },
+                    { id: 'PENSION', label: '👴 Pension Fund', sub: 'Senior Biters', color: '#d97706' }
+                  ].map((dest) => {
+                    const isSelected = targetReserve === dest.id
+                    return (
+                      <button
+                        key={dest.id}
+                        type="button"
+                        onClick={() => setTargetReserve(dest.id as any)}
+                        style={{
+                          textAlign: 'left',
+                          background: isSelected ? 'rgba(0,0,0,0.03)' : '#fbfdfc',
+                          border: `1.5px solid ${isSelected ? dest.color : 'var(--border)'}`,
+                          borderRadius: '6px',
+                          padding: '8px 10px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: isSelected ? dest.color : 'var(--foreground)' }}>
+                          {dest.label}
+                        </div>
+                        <div style={{ fontSize: '9px', color: 'var(--dim)', marginTop: '2px' }}>
+                          {dest.sub}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
 
               {/* Donation Amount Selector */}
               <div style={{ marginBottom: '16px' }}>

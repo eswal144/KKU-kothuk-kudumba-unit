@@ -45,12 +45,12 @@ exports.donate = async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'User identity could not be verified from token.' });
     }
-    const { amountMl } = req.body;
+    const { amountMl, reserveType } = req.body;
     if (!amountMl || parseFloat(amountMl) <= 0) {
       return res.status(400).json({ error: 'Please provide a valid blood donation amount in mL.' });
     }
 
-    const result = await bankService.addDonation(userId, amountMl);
+    const result = await bankService.addDonation(userId, amountMl, reserveType || 'COMMUNITY');
     res.json(result);
   } catch (err) {
     console.error('Error processing blood donation:', err);
