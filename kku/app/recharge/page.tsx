@@ -7,7 +7,6 @@ import ProfileBadge from '@/components/profile-badge'
 import SalivaMeter from '@/components/recharge/SalivaMeter'
 import RechargeButton from '@/components/recharge/RechargeButton'
 import RechargeNotificationCenter from '@/components/recharge/RechargeNotificationCenter'
-import PopulationEvents from '@/components/dashboard/PopulationEvents'
 import {
   fetchRechargeStatus,
   postRecharge,
@@ -32,8 +31,6 @@ export default function RechargePage() {
   const [selectedCategory, setSelectedCategory] = useState<'ADULT' | 'CHILD'>('ADULT')
   const [history, setHistory] = useState<RechargeHistoryItem[]>([])
   const [latestEvent, setLatestEvent] = useState<RechargeHistoryItem | null>(null)
-  const [popEvents, setPopEvents] = useState<any[]>([])
-  const [migrationAlerts, setMigrationAlerts] = useState<any[]>([])
 
   const loadRechargeData = useCallback(async (isManual = false) => {
     const token = localStorage.getItem('kku_token')
@@ -46,26 +43,14 @@ export default function RechargePage() {
     setError(null)
 
     try {
-      const [resStatus, resHistory, resPopEvts, resMig] = await Promise.all([
+      const [resStatus, resHistory] = await Promise.all([
         fetchRechargeStatus(),
-        fetchRechargeHistory(),
-        fetch(`${API_BASE}/population/events`),
-        fetch(`${API_BASE}/migration/alerts`)
+        fetchRechargeHistory()
       ])
 
       setStatus(resStatus)
       setSelectedCategory(resStatus.category || 'ADULT')
       setHistory(resHistory)
-
-      if (resPopEvts.ok) {
-        const d = await resPopEvts.json()
-        setPopEvents(d.events || [])
-      }
-
-      if (resMig.ok) {
-        const d = await resMig.json()
-        setMigrationAlerts(d.alerts || [])
-      }
     } catch (err: any) {
       if (err.message === 'UNAUTHORIZED') {
         localStorage.removeItem('kku_token')
@@ -81,6 +66,13 @@ export default function RechargePage() {
 
   useEffect(() => {
     loadRechargeData()
+
+    // Auto Refresh every 3 seconds to reflect live saliva decay
+    const timer = setInterval(() => {
+      loadRechargeData()
+    }, 3000)
+
+    return () => clearInterval(timer)
   }, [loadRechargeData])
 
   const handleRecharge = async () => {
@@ -97,7 +89,6 @@ export default function RechargePage() {
         setStatus(res.status)
         setSuccessMsg(res.message || 'poyi kadicho! 🦟🩸')
 
-        // Create new history event item for flying mosquito animation with poyi kadicho!
         const maxCap = selectedCategory === 'ADULT' ? 6.8 : 4.6
         const newEvt: RechargeHistoryItem = {
           id: Date.now(),
@@ -149,13 +140,14 @@ export default function RechargePage() {
             onClick={() => loadRechargeData(true)}
             disabled={refreshing}
             style={{
-              background: 'none',
+              background: '#ffffff',
               border: '1px solid var(--border)',
               color: 'var(--dim)',
               fontSize: '11px',
               fontWeight: 600,
               cursor: 'pointer',
               padding: '6px 12px',
+              borderRadius: '6px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px'
@@ -167,8 +159,8 @@ export default function RechargePage() {
         </div>
       </nav>
 
-      {/* Main Container */}
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 5vw 80px' }}>
+      {/* Main Container with generous spacing matching dashboard */}
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 5vw 80px' }}>
 
         {/* System Status Banner */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
@@ -177,7 +169,7 @@ export default function RechargePage() {
               <span className="eyebrow-dot" /> KKU SERVICE &bull; MOSQ-RECHARGE™
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.12em', color: 'var(--dim)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.12em', color: 'var(--dim)', fontWeight: 600 }}>
             <Radio size={12} style={{ color: 'var(--mint)' }} />
             <span>SQLite Saliva DB Active</span>
             &bull;
@@ -187,10 +179,10 @@ export default function RechargePage() {
 
         {/* Header Title */}
         <div style={{ marginBottom: '32px' }}>
-          <h1 style={{ fontSize: 'clamp(2.4rem, 5vw, 3.6rem)', fontWeight: 300, margin: '0 0 8px', letterSpacing: '-.05em' }}>
+          <h1 style={{ fontSize: 'clamp(2.4rem, 5vw, 3.6rem)', fontWeight: 800, margin: '0 0 8px', letterSpacing: '-.05em', color: 'var(--foreground)' }}>
             🧪 MOSQ-RECHARGE™
           </h1>
-          <p style={{ color: 'var(--dim)', fontSize: '13px', margin: 0, textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 600 }}>
+          <p style={{ color: 'var(--dim)', fontSize: '12px', margin: 0, textTransform: 'uppercase', letterSpacing: '.14em', fontWeight: 700 }}>
             SALIVA RECHARGING CENTER &bull; CITIZEN HYDRO-STATION
           </p>
         </div>
@@ -199,28 +191,28 @@ export default function RechargePage() {
         {status && (
           <div
             style={{
-              background: 'var(--panel)',
+              background: '#ffffff',
               border: '1px solid var(--border)',
-              padding: '18px 24px',
-              marginBottom: '24px',
-              display: 'flex',
-              justify: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px'
+              borderRadius: '12px',
+              padding: '20px 24px',
+              marginBottom: '28px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '20px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
             }}
           >
             <div>
-              <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--dim)', display: 'block' }}>
+              <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--dim)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
                 LOGGED-IN CITIZEN
               </span>
-              <strong style={{ fontSize: '18px', fontFamily: 'monospace', color: 'var(--mint)' }}>
+              <strong style={{ fontSize: '17px', fontFamily: 'monospace', color: 'var(--mint)', fontWeight: 800 }}>
                 {status.kkuId}
               </strong>
             </div>
 
             <div>
-              <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--dim)', display: 'block' }}>
+              <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--dim)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
                 CITIZEN CLASSIFICATION
               </span>
               <span
@@ -229,10 +221,12 @@ export default function RechargePage() {
                   fontWeight: 800,
                   textTransform: 'uppercase',
                   letterSpacing: '.12em',
-                  color: 'var(--foreground)',
-                  background: 'oklch(0.79 0.17 154 / 15%)',
-                  padding: '2px 8px',
-                  border: '1px solid var(--mint)'
+                  color: 'var(--mint)',
+                  background: 'rgba(5, 150, 105, 0.1)',
+                  padding: '3px 10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--mint)',
+                  display: 'inline-block'
                 }}
               >
                 {status.category}
@@ -240,10 +234,10 @@ export default function RechargePage() {
             </div>
 
             <div>
-              <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--dim)', display: 'block' }}>
+              <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--dim)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
                 MAX RESERVE CAPACITY
               </span>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--foreground)' }}>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--foreground)' }}>
                 {status.maximumSalivaNl.toFixed(1)} nL
               </span>
             </div>
@@ -291,13 +285,14 @@ export default function RechargePage() {
         />
 
         {/* Footer */}
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', marginTop: '40px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--dim)' }}>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px', marginTop: '48px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 600 }}>
           <span>© KKU / Kothuk Kudumba Unit</span>
           <span>Fictional Mosquito Simulation Mechanic</span>
-          <a href="/recharge#top" style={{ color: 'var(--mint)' }}>Back to Top ↑</a>
+          <a href="/recharge#top" style={{ color: 'var(--mint)', fontWeight: 700 }}>Back to Top ↑</a>
         </div>
 
       </div>
     </main>
   )
 }
+

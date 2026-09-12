@@ -115,7 +115,7 @@ function rechargeMosquito(userId, requestedCategory, callback) {
       // Update SQLite3 database with maximum capacity for chosen category
       db.run(
         `UPDATE saliva_reserves 
-         SET current_saliva_nl = ?, maximum_saliva_nl = ?, last_recharged_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
+         SET current_saliva_nl = ?, maximum_saliva_nl = ?, alert_low_sent = 0, alert_empty_sent = 0, last_recharged_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
          WHERE mosquito_id = ?`,
         [maxSaliva, maxSaliva, profile.id],
         function (updateErr) {
@@ -132,7 +132,14 @@ function rechargeMosquito(userId, requestedCategory, callback) {
             () => {}
           );
 
-          // 2. Log to social_notifications
+          // 2. Log to kku_events (Civilization stream)
+          db.run(
+            `INSERT INTO kku_events (event_type, title, message, citizen_id) VALUES ('RECHARGE', '⚡ SALIVA RESTORED', ?, ?)`,
+            [eventMessage, profile.kku_id],
+            () => {}
+          );
+
+          // 3. Log to social_notifications
           db.run(
             `INSERT INTO social_notifications (user_id, message) VALUES (?, ?)`,
             [userId, `🧪 SALIVA RECHARGED: ${eventMessage}`],

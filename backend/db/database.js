@@ -53,10 +53,10 @@ db.serialize(() => {
     )
   `);
 
-  // Ensure dengue_risk column exists for existing SQLite databases
-  db.run(`ALTER TABLE mosquito_profiles ADD COLUMN dengue_risk TEXT DEFAULT 'HIGH'`, (err) => {
-    // Ignore error if column already exists
-  });
+  // Ensure columns exist for existing SQLite databases
+  db.run(`ALTER TABLE mosquito_profiles ADD COLUMN dengue_risk TEXT DEFAULT 'HIGH'`, () => {});
+  db.run(`ALTER TABLE mosquito_profiles ADD COLUMN is_active INTEGER DEFAULT 1`, () => {});
+  db.run(`ALTER TABLE mosquito_profiles ADD COLUMN deceased_at DATETIME`, () => {});
 
   // 3. Jobs Table
   db.run(`
@@ -366,11 +366,16 @@ db.serialize(() => {
       mosquito_id INTEGER UNIQUE NOT NULL,
       current_saliva_nl REAL NOT NULL,
       maximum_saliva_nl REAL NOT NULL,
+      alert_low_sent INTEGER DEFAULT 0,
+      alert_empty_sent INTEGER DEFAULT 0,
       last_recharged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (mosquito_id) REFERENCES mosquito_profiles (id) ON DELETE CASCADE
     )
   `);
+
+  db.run(`ALTER TABLE saliva_reserves ADD COLUMN alert_low_sent INTEGER DEFAULT 0`, () => {});
+  db.run(`ALTER TABLE saliva_reserves ADD COLUMN alert_empty_sent INTEGER DEFAULT 0`, () => {});
 
   // 16. KKU Events Table (Civilization Events & Notifications)
   db.run(`
@@ -382,6 +387,19 @@ db.serialize(() => {
       citizen_id TEXT,
       metadata TEXT,
       is_read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 17. AI Message & Name Pool Table (Persistent Groq AI Queue)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS ai_message_pool (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content_type TEXT NOT NULL,
+      name TEXT,
+      title TEXT,
+      message TEXT NOT NULL,
+      is_used INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);

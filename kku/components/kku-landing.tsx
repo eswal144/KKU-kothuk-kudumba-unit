@@ -57,10 +57,10 @@ export default function KkuLanding() {
         if (isMounted && recentEvents.length > 0) {
           setEvents(recentEvents)
           const newest = recentEvents[0]
-          if (lastEventIdRef.current !== null && newest.id !== lastEventIdRef.current) {
+          if (lastEventIdRef.current !== newest.id) {
             triggerFlyAnimation(newest)
+            lastEventIdRef.current = newest.id
           }
-          lastEventIdRef.current = newest.id
         }
       } catch (err) {
         console.warn('Simulation polling notice:', err)
@@ -68,7 +68,7 @@ export default function KkuLanding() {
     }
 
     loadData()
-    const interval = setInterval(loadData, 5000)
+    const interval = setInterval(loadData, 2000)
 
     return () => {
       isMounted = false
@@ -81,9 +81,9 @@ export default function KkuLanding() {
     setLatestFlyEvent(event)
     setAnimStage('flying-in')
 
-    const sTimer = setTimeout(() => setAnimStage('settled'), 600)
-    const oTimer = setTimeout(() => setAnimStage('flying-out'), 4200)
-    const hTimer = setTimeout(() => setAnimStage('hidden'), 4800)
+    const sTimer = setTimeout(() => setAnimStage('settled'), 500)
+    const oTimer = setTimeout(() => setAnimStage('flying-out'), 4500) // Settled for exactly 4.0s (500ms to 4500ms)
+    const hTimer = setTimeout(() => setAnimStage('hidden'), 5100)
 
     return () => {
       clearTimeout(sTimer)

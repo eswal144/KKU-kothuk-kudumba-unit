@@ -218,11 +218,26 @@ export default function ProfileBadge({ onOpenAuth }: ProfileBadgeProps) {
       </button>
 
       {/* Mosquito Passport Popover Dropdown Card */}
-      <div className={`profile-popover ${isOpen ? 'open' : ''}`}>
+      <div
+        className={`profile-popover ${isOpen ? 'open' : ''}`}
+        style={{
+          position: 'absolute',
+          top: 'calc(100% + 12px)',
+          right: 0,
+          width: '420px',
+          maxWidth: 'calc(100vw - 32px)',
+          background: 'var(--background)',
+          border: '1px solid var(--border)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.12)',
+          borderRadius: '12px',
+          zIndex: 1000,
+          color: 'var(--foreground)'
+        }}
+      >
         {/* Passport Header */}
-        <div className="profile-popover-header">
+        <div className="profile-popover-header" style={{ borderBottom: '1px solid var(--border)' }}>
           <div>
-            <span className="kku-id-badge" style={{ fontSize: '11px', padding: '4px 10px' }}>
+            <span className="kku-id-badge" style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(5, 150, 105, 0.1)', border: '1px solid var(--mint)', color: 'var(--mint)' }}>
               <ShieldCheck size={12} /> {profile?.kku_id || 'KKU-CITIZEN'}
             </span>
             <p style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--dim)', marginTop: '8px', marginBottom: 0 }}>

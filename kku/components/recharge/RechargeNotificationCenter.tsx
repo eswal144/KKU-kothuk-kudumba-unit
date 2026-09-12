@@ -83,21 +83,23 @@ export default function RechargeNotificationCenter({
   return (
     <div
       style={{
-        background: 'var(--panel)',
+        background: '#ffffff',
         border: '1px solid var(--border)',
+        borderRadius: '12px',
         padding: '24px',
         marginTop: '28px',
-        position: 'relative'
+        position: 'relative',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Activity size={16} style={{ color: 'var(--mint)' }} />
-          <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--dim)', fontWeight: 700 }}>
+          <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--dim)', fontWeight: 800 }}>
             KKU RECHARGE ACTIVITY
           </span>
         </div>
-        <span style={{ fontSize: '9px', color: 'var(--mint)', fontWeight: 600 }}>
+        <span style={{ fontSize: '9px', color: 'var(--mint)', fontWeight: 700, letterSpacing: '.1em' }}>
           CIVILIZATION LOGS
         </span>
       </div>
@@ -106,8 +108,9 @@ export default function RechargeNotificationCenter({
       <div
         style={{
           height: '90px',
-          background: 'oklch(0.12 0.01 155)',
+          background: '#fdfbf7',
           border: '1px solid var(--border)',
+          borderRadius: '8px',
           position: 'relative',
           overflow: 'hidden',
           display: 'flex',
@@ -120,11 +123,12 @@ export default function RechargeNotificationCenter({
           <div
             style={{
               position: 'absolute',
-              width: '90%',
-              background: 'radial-gradient(ellipse at top left, oklch(0.24 0.05 155 / 60%), transparent), oklch(0.16 0.01 155)',
+              width: '92%',
+              background: '#ffffff',
               border: '1px solid var(--mint)',
+              borderRadius: '8px',
               padding: '12px 16px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.6), 0 0 20px oklch(0.79 0.17 154 / 25%)',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
@@ -141,18 +145,18 @@ export default function RechargeNotificationCenter({
                   🧪 SALIVA RECHARGED
                 </span>
               </div>
-              <p style={{ fontSize: '11px', color: 'var(--foreground)', margin: '2px 0 0', lineHeight: 1.3 }}>
+              <p style={{ fontSize: '11px', color: 'var(--foreground)', margin: '2px 0 0', lineHeight: 1.3, fontWeight: 600 }}>
                 {activeItem.description}
               </p>
             </div>
-            <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--dim)', border: '1px solid var(--border)', padding: '2px 6px' }}>
+            <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--dim)', border: '1px solid var(--border)', padding: '3px 8px', borderRadius: '4px', fontWeight: 600 }}>
               FLYING DISPATCH
             </span>
           </div>
         ) : (
           <div style={{ textAlign: 'center', color: 'var(--dim)', fontSize: '11px' }}>
             <BellRing size={14} style={{ color: 'var(--mint)', display: 'inline-block', marginBottom: '4px' }} />
-            <p style={{ margin: 0, fontSize: '10px', letterSpacing: '.08em', textTransform: 'uppercase' }}>
+            <p style={{ margin: 0, fontSize: '10px', letterSpacing: '.08em', textTransform: 'uppercase', fontWeight: 600 }}>
               Recharge flight activity corridor ready
             </p>
           </div>
@@ -161,7 +165,7 @@ export default function RechargeNotificationCenter({
 
       {/* History Log List */}
       <div>
-        <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.12em', color: 'var(--dim)', display: 'block', marginBottom: '10px' }}>
+        <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.12em', color: 'var(--dim)', display: 'block', marginBottom: '10px', fontWeight: 700 }}>
           RECENT RECHARGE DISPATCHES
         </span>
 
@@ -176,15 +180,16 @@ export default function RechargeNotificationCenter({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '10px',
-                  padding: '8px 12px',
-                  background: 'oklch(0.18 0.01 155 / 40%)',
+                  padding: '10px 14px',
+                  background: '#fdfbf7',
                   border: '1px solid var(--border)',
+                  borderRadius: '6px',
                   fontSize: '11px'
                 }}
               >
                 <span>{item.icon || '🧪'}</span>
-                <span style={{ flex: 1, color: 'var(--foreground)' }}>{item.description}</span>
-                <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--dim)' }}>
+                <span style={{ flex: 1, color: 'var(--foreground)', fontWeight: 600 }}>{item.description}</span>
+                <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--mint)', fontWeight: 800 }}>
                   {item.event_type}
                 </span>
               </div>
@@ -195,3 +200,4 @@ export default function RechargeNotificationCenter({
     </div>
   )
 }
+

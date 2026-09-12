@@ -38,22 +38,40 @@ export default function PopulationEvents({
   const [animState, setAnimState] = useState<'visible' | 'exiting' | 'entering'>('visible')
   const [toastDismissed, setToastDismissed] = useState(false)
 
-  // Merge Population Events & Migration Alerts into one live stream sequence
+  // Merge Population Events & Migration Alerts into one live stream sequence (prioritizing funny events)
   const streamItems = useMemo<StreamItem[]>(() => {
     const list: StreamItem[] = []
 
-    // 1. Map Population Events
+    // 1. Map Population Events (Funny births, deaths, and civilization alerts)
     events.forEach((evt) => {
+      let icon = evt.icon || '🦟'
+      let category = 'CIVILIZATION EVENT'
+      let badge = evt.event_type || 'REGISTRY'
+
+      if (evt.event_type === 'BIRTH') {
+        icon = '🍼'
+        category = '🍼 NEW CITIZEN HATCHED'
+        badge = 'NEWBORN'
+      } else if (evt.event_type === 'DEATH' || (evt.event_type && evt.event_type.includes('DEATH'))) {
+        icon = '⚰️'
+        category = '⚰️ CITIZEN HAZARD'
+        badge = 'HAZARD'
+      } else if (evt.event_type === 'SWAT_ALERT' || evt.event_type === 'ALERT') {
+        icon = '🚨'
+        category = '🚨 SWAT RADAR ALERT'
+        badge = 'RADAR'
+      }
+
       list.push({
         id: `pop-${evt.id}`,
-        icon: evt.icon || '🦟',
-        category: 'CIVILIZATION EVENT',
-        description: evt.description,
-        badge: evt.event_type || 'REGISTRY'
+        icon,
+        category,
+        description: evt.description || (evt as any).message || (evt as any).title || 'Civilization activity logged.',
+        badge
       })
     })
 
-    // 2. Map Migration Alerts
+    // 2. Append Migration Alerts after funny civilization events (or if no events yet)
     migrationAlerts.forEach((mig) => {
       list.push({
         id: `mig-${mig.id}`,
@@ -66,6 +84,18 @@ export default function PopulationEvents({
 
     return list
   }, [events, migrationAlerts])
+
+  // Auto-focus on newest event when events update and trigger flight animation
+  useEffect(() => {
+    if (events.length > 0) {
+      setCurrentIndex(0)
+      setAnimState('entering')
+      const timer = setTimeout(() => {
+        setAnimState('visible')
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [events[0]?.id])
 
   // Transition handler for "comes from down and goes to up"
   const triggerNext = useCallback(() => {
@@ -92,13 +122,13 @@ export default function PopulationEvents({
     }, 300)
   }, [streamItems.length])
 
-  // Auto-rotate pop-up every 5 seconds (comes from down, goes to up)
+  // Auto-rotate pop-up every 4 seconds (comes from down, goes to up)
   useEffect(() => {
     if (streamItems.length === 0 || toastDismissed) return
 
     const timer = setInterval(() => {
       triggerNext()
-    }, 5000)
+    }, 4000)
 
     return () => clearInterval(timer)
   }, [streamItems.length, toastDismissed, triggerNext])
@@ -119,21 +149,27 @@ export default function PopulationEvents({
 
   return (
     <>
-      {/* FLOATING LEFT-SIDE POP-UP NOTIFICATION TOAST (Comes from down, goes to up) */}
+      {/* FLOATING POP-UP NOTIFICATION TOAST (Comes from down, goes to up) */}
       {activeItem && !toastDismissed && (
         <div
           style={{
             position: 'fixed',
-            bottom: '28px',
-            left: '28px',
-            width: '350px',
-            maxWidth: 'calc(100vw - 56px)',
+            bottom: '24px',
+            right: '24px',
+            width: '360px',
+            maxWidth: 'calc(100vw - 48px)',
             background: 'var(--panel)',
-            border: activeItem.category === 'MIGRATION ALERT' ? '1px solid oklch(0.75 0.16 155)' : '1px solid var(--mint)',
-            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.75), 0 0 24px oklch(0.79 0.17 154 / 20%)',
+            border: activeItem.category.includes('HAZARD')
+              ? '1px solid #ff4d4d'
+              : activeItem.category.includes('ALERT')
+              ? '1px solid oklch(0.85 0.15 80)'
+              : '1px solid var(--mint)',
+            borderRadius: '10px',
+            boxShadow: '0 12px 35px rgba(0, 0, 0, 0.12)',
             backdropFilter: 'blur(12px)',
-            zIndex: 999,
+            zIndex: 950,
             padding: '14px 16px',
+            color: 'var(--foreground)',
             transition: animState === 'entering' ? 'none' : 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease',
             transform: getTransform(),
             opacity: getOpacity()
@@ -147,15 +183,34 @@ export default function PopulationEvents({
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                  background: activeItem.category === 'MIGRATION ALERT' ? 'oklch(0.85 0.15 80)' : 'var(--mint)',
-                  boxShadow: `0 0 8px ${activeItem.category === 'MIGRATION ALERT' ? 'oklch(0.85 0.15 80)' : 'var(--mint)'}`,
+                  background: activeItem.category.includes('HAZARD')
+                    ? '#ff4d4d'
+                    : activeItem.category.includes('ALERT')
+                    ? 'oklch(0.85 0.15 80)'
+                    : 'var(--mint)',
+                  boxShadow: `0 0 8px ${
+                    activeItem.category.includes('HAZARD')
+                      ? '#ff4d4d'
+                      : activeItem.category.includes('ALERT')
+                      ? 'oklch(0.85 0.15 80)'
+                      : 'var(--mint)'
+                  }`,
                   display: 'inline-block'
                 }}
               />
               {activeItem.category === 'MIGRATION ALERT' ? (
                 <Navigation size={13} style={{ color: 'oklch(0.85 0.15 80)' }} />
               ) : (
-                <BellRing size={13} style={{ color: 'var(--mint)' }} />
+                <BellRing
+                  size={13}
+                  style={{
+                    color: activeItem.category.includes('HAZARD')
+                      ? '#ff4d4d'
+                      : activeItem.category.includes('ALERT')
+                      ? 'oklch(0.85 0.15 80)'
+                      : 'var(--mint)'
+                  }}
+                />
               )}
               <span
                 style={{
@@ -163,7 +218,11 @@ export default function PopulationEvents({
                   fontWeight: 800,
                   textTransform: 'uppercase',
                   letterSpacing: '.14em',
-                  color: activeItem.category === 'MIGRATION ALERT' ? 'oklch(0.85 0.15 80)' : 'var(--mint)'
+                  color: activeItem.category.includes('HAZARD')
+                    ? '#ff4d4d'
+                    : activeItem.category.includes('ALERT')
+                    ? 'oklch(0.85 0.15 80)'
+                    : 'var(--mint)'
                 }}
               >
                 {activeItem.category}
@@ -206,10 +265,24 @@ export default function PopulationEvents({
                     textTransform: 'uppercase',
                     letterSpacing: '.1em',
                     fontWeight: 700,
-                    color: activeItem.category === 'MIGRATION ALERT' ? 'oklch(0.85 0.15 80)' : 'var(--mint)',
-                    background: activeItem.category === 'MIGRATION ALERT' ? 'oklch(0.85 0.15 80 / 15%)' : 'oklch(0.79 0.17 154 / 15%)',
+                    color: activeItem.category.includes('HAZARD')
+                      ? '#ff4d4d'
+                      : activeItem.category.includes('ALERT')
+                      ? 'oklch(0.85 0.15 80)'
+                      : 'var(--mint)',
+                    background: activeItem.category.includes('HAZARD')
+                      ? 'rgba(255, 77, 77, 0.12)'
+                      : activeItem.category.includes('ALERT')
+                      ? 'oklch(0.85 0.15 80 / 15%)'
+                      : 'oklch(0.79 0.17 154 / 15%)',
                     padding: '2px 6px',
-                    border: `1px solid ${activeItem.category === 'MIGRATION ALERT' ? 'oklch(0.85 0.15 80 / 40%)' : 'oklch(0.79 0.17 154 / 30%)'}`
+                    border: `1px solid ${
+                      activeItem.category.includes('HAZARD')
+                        ? 'rgba(255, 77, 77, 0.4)'
+                        : activeItem.category.includes('ALERT')
+                        ? 'oklch(0.85 0.15 80 / 40%)'
+                        : 'oklch(0.79 0.17 154 / 30%)'
+                    }`
                   }}
                 >
                   {activeItem.badge}

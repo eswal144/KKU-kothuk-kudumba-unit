@@ -131,11 +131,20 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchDashboardData()
 
+    // Auto-refresh dashboard telemetry & civilization events every 3 seconds
+    const interval = setInterval(() => {
+      fetchDashboardData()
+    }, 3000)
+
     const handleProfileUpdate = () => {
       fetchDashboardData(true)
     }
     window.addEventListener('kku_profile_updated', handleProfileUpdate)
-    return () => window.removeEventListener('kku_profile_updated', handleProfileUpdate)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('kku_profile_updated', handleProfileUpdate)
+    }
   }, [fetchDashboardData])
 
   if (loading) {

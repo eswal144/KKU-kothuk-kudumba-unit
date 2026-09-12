@@ -24,12 +24,12 @@ export default function SocialNotifications({ notifications }: { notifications: 
   return (
     <div
       style={{
-        background: 'var(--panel)',
+        background: '#ffffff',
         border: '1px solid var(--border)',
-        borderRadius: '8px',
+        borderRadius: '12px',
         padding: '24px',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
-        transition: 'transform 0.2s, borderColor 0.2s'
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+        color: 'var(--foreground)'
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -39,7 +39,7 @@ export default function SocialNotifications({ notifications }: { notifications: 
             💬 CITIZEN BUZZ DISPATCHES
           </span>
         </div>
-        <span style={{ fontSize: '9px', color: 'var(--mint)', fontWeight: 700, background: 'oklch(0.79 0.17 154 / 15%)', padding: '2px 8px', border: '1px solid oklch(0.79 0.17 154 / 30%)', borderRadius: '4px' }}>
+        <span style={{ fontSize: '9px', color: 'var(--mint)', fontWeight: 700, background: 'rgba(5, 150, 105, 0.1)', padding: '2px 8px', border: '1px solid var(--mint)', borderRadius: '4px' }}>
           LIVE FREQUENCY: 600 Hz
         </span>
       </div>
@@ -57,7 +57,7 @@ export default function SocialNotifications({ notifications }: { notifications: 
               alignItems: 'flex-start',
               gap: '12px',
               padding: '12px 14px',
-              background: 'oklch(0.18 0.01 155 / 60%)',
+              background: '#ffffff',
               border: '1px solid var(--border)',
               borderRadius: '6px',
               transition: 'border-color 0.2s'
@@ -69,7 +69,7 @@ export default function SocialNotifications({ notifications }: { notifications: 
                 {item.message}
               </p>
             </div>
-            <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--mint)', background: 'oklch(0.79 0.17 154 / 10%)', padding: '2px 6px', border: '1px solid oklch(0.79 0.17 154 / 20%)', borderRadius: '3px', flexShrink: 0 }}>
+            <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--mint)', background: 'rgba(5, 150, 105, 0.08)', padding: '2px 6px', border: '1px solid var(--mint)', borderRadius: '3px', flexShrink: 0 }}>
               {item.tag}
             </span>
           </div>

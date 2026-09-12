@@ -16,9 +16,11 @@ export default function Leaderboard({ leaderboard }: { leaderboard: LeaderboardE
   return (
     <div
       style={{
-        background: 'var(--panel)',
+        background: '#ffffff',
         border: '1px solid var(--border)',
-        padding: '24px'
+        borderRadius: '12px',
+        padding: '24px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -46,7 +48,7 @@ export default function Leaderboard({ leaderboard }: { leaderboard: LeaderboardE
           </thead>
           <tbody>
             {leaderboard.map((row, index) => (
-              <tr key={row.id || index} style={{ borderBottom: '1px solid oklch(0.18 0.01 155 / 40%)' }}>
+              <tr key={row.id || index} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '10px 6px', fontWeight: 800, color: index === 0 ? 'var(--mint)' : 'var(--foreground)' }}>
                   {index === 0 ? '🥇 1st' : index === 1 ? '🥈 2nd' : index === 2 ? '🥉 3rd' : `${index + 1}th`}
                 </td>

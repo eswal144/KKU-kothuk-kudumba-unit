@@ -14,61 +14,53 @@ async function generateSimulationProposal(context = {}) {
   const existingNamesStr = (context.existingNames || []).slice(-30).join(', ');
   const recentEventsStr = (context.recentEvents || []).map(e => e.message).join(' | ');
 
-  const systemPrompt = `You are the civilization simulation intelligence for KKU — Kothuk Kudumba Unit, a fictional digital civilization created for mosquitoes.
+  const systemPrompt = `You are the civilization simulation AI for KKU — Kothuk Kudumba Unit, a digital civilization of mosquitoes.
 
-Treat the mosquito civilization with complete seriousness while generating absurd and deadpan situations.
+At every simulation tick (interval), dynamically invent completely ORIGINAL, FRESH, and HILARIOUS mosquito civilization notifications and names. DO NOT repeat fixed strings or hardcoded examples.
 
-Generate small, plausible fictional civilization events.
-Create creative and funny mosquito names (e.g. Bite Tyson, Mosq Norris, Swat Damon, Buzz Aldrin, Bitey McBiteface, Mosesquito, Wingston Churchill, Buzz Lightyear, Dr. Biteman, Mosquitorious B.I.G., Blood Pitt, Bitey Spears, Flyoncé, Justin Timberfly, Snoop Bug, Wing Diesel, Mosquille O'Neal, Bite Wayne, Buzz Khalifa, Tony Wing).
+SIMULATION RULES:
+1. BIRTH EVENTS:
+   - Generate a funny newborn notification.
+   - ALWAYS include cute mosquito newborn buzzing sounds like "zzz zzzzz! Bzzzz!" followed by funny first words, nectar demands, or flight school chaos.
+   - Invent a unique, witty mosquito name for each newborn (e.g. punny names mixing mosquito/flying terms with human pop culture or historical figures).
 
-IMPORTANT NAME RULES:
-1. Every new mosquito name MUST be substantially different from previously used names.
-2. DO NOT use any of these existing names: [${existingNamesStr}].
-3. Do NOT generate KKU-IDs; the backend generates those.
-4. Do NOT directly calculate or overwrite total population.
+2. DEATH / ARCHIVE EVENTS:
+   - Generate a deadpan, humorous message about mosquito hazards (e.g., electronic swatter traps, sticky tape, unexpected ceiling fans, heavy raindrops, wind gusts, citronella candles, rolled-up newspapers).
 
-EVENT TYPES PERMITTED:
-- BIRTH
-- DEATH
-- MIGRATION
-- JOB_EVENT
-- HEALTH_EVENT
-- BANK_EVENT
-- EMERGENCY
-- SOCIAL_EVENT
-- POPULATION_EVENT
-- RECHARGE_EVENT
-- WEATHER_EVENT
-- SWAT_ALERT
+3. CIVILIZATION ALERTS / SOCIAL EVENTS:
+   - Generate absurd mosquito society news: SWAT alerts, nectar exchange rates, wing repair clinic updates, blood drive announcements, or sector weather (humidity/rain).
 
-Return STRICT JSON ONLY matching this exact JSON structure:
+4. CREATIVITY INSTRUCTION:
+   - Every response MUST contain 100% unique names and original messages. Do NOT reuse previous names: [${existingNamesStr}].
+   - Do NOT generate KKU-IDs (the backend assigns them).
+   - Do NOT modify total population directly.
+
+Output strictly a single valid JSON object formatted as:
 {
-  "births": 3,
-  "deaths": 1,
+  "births": number (0-15),
+  "deaths": number (0-10),
   "events": [
     {
       "type": "BIRTH",
-      "name": "Buzz Khalifa",
+      "name": "Original Name Here",
       "species": "Aedes aegypti",
-      "location": "Kochi Sector 4",
+      "location": "Sector Name",
       "title": "🍼 NEW CITIZEN",
-      "message": "Buzz Khalifa has officially entered the KKU population. Orientation begins immediately."
+      "message": "Dynamic original birth message with zzz zzzzz! Bzzzz!"
     },
     {
       "type": "DEATH",
       "title": "⚰️ CITIZEN ARCHIVED",
-      "message": "A citizen completed their 18-day public service to the KKU civilization."
+      "message": "Dynamic hilarious mosquito hazard death message"
     },
     {
-      "type": "SWAT ALERT",
+      "type": "SWAT_ALERT",
       "title": "🚨 SWAT ALERT",
-      "message": "Sector 7 reports unusually aggressive human activity and electric rackets."
+      "message": "Dynamic warning or community update"
     }
   ]
-}
+}`;
 
-Keep numbers small and realistic: births (0 to 10), deaths (0 to 5) per tick.
-Messages should be deadpan, government-style, short, witty, and funny.`;
 
   const userPrompt = `Current Civilization Context:
 - Total Population: ${context.totalPopulation || 1284920}
@@ -76,48 +68,73 @@ Messages should be deadpan, government-style, short, witty, and funny.`;
 - Deaths Today: ${context.deathsToday || 217}
 - Recent Events Context: ${recentEventsStr || 'Normal night operations.'}
 
-Generate the next simulation tick proposal. Return ONLY valid JSON.`;
+Please return the next simulation tick proposal as valid JSON.`;
 
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey.trim()}`
-    },
-    body: JSON.stringify({
-      model: 'openai/gpt-oss-20b',
-      response_format: { type: 'json_object' },
-      temperature: 0.8,
-      max_tokens: 800,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ]
-    })
-  });
+  // Models to try in order of preference (using fast & high limit models first)
+  const candidateModels = ['openai/gpt-oss-20b', 'groq/compound-mini', 'openai/gpt-oss-120b', 'qwen/qwen3.8-27b'];
+  let lastError = null;
+
+  for (const model of candidateModels) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey.trim()}`
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0.7,
+          max_tokens: 450,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ]
+        })
+      });
 
 
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Model ${model} responded with ${response.status}: ${errText}`);
+      }
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Groq API responded with status ${response.status}: ${errText}`);
+      const data = await response.json();
+      const rawContent = data.choices?.[0]?.message?.content;
+
+      if (!rawContent) {
+        throw new Error(`Empty content from Groq model ${model}`);
+      }
+
+      // Robust JSON extraction & strip thinking tokens
+      let cleanJson = rawContent.trim();
+      if (cleanJson.includes('</think>')) {
+        cleanJson = cleanJson.split('</think>')[1].trim();
+      }
+      if (cleanJson.includes('```json')) {
+        cleanJson = cleanJson.split('```json')[1].split('```')[0].trim();
+      } else if (cleanJson.includes('```')) {
+        cleanJson = cleanJson.split('```')[1].split('```')[0].trim();
+      }
+
+      const firstBrace = cleanJson.indexOf('{');
+      const lastBrace = cleanJson.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        cleanJson = cleanJson.substring(firstBrace, lastBrace + 1).trim();
+      }
+
+      const parsed = JSON.parse(cleanJson);
+      if (parsed && typeof parsed === 'object') {
+        return parsed;
+      }
+
+    } catch (err) {
+      lastError = err;
+      console.warn(`[Groq Model Try]: ${model} failed (${err.message}). Trying next candidate...`);
+    }
   }
 
-  const data = await response.json();
-  const rawContent = data.choices?.[0]?.message?.content;
-
-  if (!rawContent) {
-    throw new Error('Empty response received from Groq AI.');
-  }
-
-  let parsed;
-  try {
-    parsed = JSON.parse(rawContent);
-  } catch (err) {
-    throw new Error('Failed to parse Groq response as valid JSON: ' + err.message);
-  }
-
-  return parsed;
+  throw new Error(`All Groq models failed. Last error: ${lastError ? lastError.message : 'Unknown error'}`);
 }
 
 module.exports = {

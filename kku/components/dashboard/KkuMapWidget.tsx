@@ -210,12 +210,15 @@ export default function KkuMapWidget() {
     <div
       id="kku-map"
       style={{
-        background: 'var(--panel)',
-        border: '1px solid var(--mint)',
+        background: '#ffffff',
+        border: '1px solid var(--border)',
+        borderRadius: '12px',
         padding: '24px',
         marginBottom: '28px',
         position: 'relative',
-        scrollMarginTop: '80px'
+        scrollMarginTop: '80px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+        color: 'var(--foreground)'
       }}
     >
       {/* Map Header */}
@@ -240,9 +243,10 @@ export default function KkuMapWidget() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: '12px',
           marginBottom: '18px',
-          background: 'oklch(0.14 0.01 155)',
+          background: '#ffffff',
           border: '1px solid var(--border)',
-          padding: '12px 16px'
+          borderRadius: '8px',
+          padding: '14px 18px'
         }}
       >
         <div>
@@ -255,11 +259,11 @@ export default function KkuMapWidget() {
         </div>
         <div>
           <span style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 700 }}>👤 HUMAN HOSTS DETECTED</span>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#3b82f6' }}>{totalHumans} Hosts</div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: '#2563eb' }}>{totalHumans} Hosts</div>
         </div>
         <div>
           <span style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 700 }}>🩸 TOP DEMAND SECTOR</span>
-          <div style={{ fontSize: '15px', fontWeight: 800, color: '#f59e0b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: '15px', fontWeight: 800, color: '#d97706', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Night Market Food Court
           </div>
         </div>
@@ -269,7 +273,7 @@ export default function KkuMapWidget() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px' }}>
         
         {/* MAP VIEWPORT */}
-        <div style={{ position: 'relative', width: '100%', height: '480px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', width: '100%', height: '480px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
           <RealGeoMap
             demandLocations={demandLocations}
             onSelectDemandLocation={(loc) => {
@@ -282,12 +286,13 @@ export default function KkuMapWidget() {
         {/* DEMAND LOCATION TELEMETRY SIDEBAR */}
         <div
           style={{
-            background: 'oklch(0.16 0.01 155)',
+            background: '#ffffff',
             border: '1px solid var(--border)',
+            borderRadius: '8px',
             padding: '18px',
             display: 'flex',
             flexDirection: 'column',
-            justify: 'space-between',
+            justifyContent: 'space-between',
             maxHeight: '480px',
             overflowY: 'auto'
           }}
@@ -299,7 +304,7 @@ export default function KkuMapWidget() {
                   <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--mint)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <MapPin size={12} /> BITE VACANCY TELEMETRY
                   </span>
-                  <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', color: 'var(--dim)' }}>
+                  <span style={{ fontSize: '9px', background: 'rgba(0,0,0,0.04)', padding: '2px 6px', color: 'var(--dim)', borderRadius: '4px' }}>
                     {selectedDemandLoc.category}
                   </span>
                 </div>
@@ -311,11 +316,11 @@ export default function KkuMapWidget() {
                 {/* Vacancy Status Pill */}
                 <div style={{ marginTop: '8px', marginBottom: '14px' }}>
                   {selectedDemandLoc.status === 'VACANCIES_AVAILABLE' ? (
-                    <div style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid #10b981', color: '#10b981', padding: '6px 10px', fontSize: '11px', fontWeight: 800 }}>
+                    <div style={{ background: 'rgba(5, 150, 105, 0.1)', border: '1px solid var(--mint)', color: 'var(--mint)', padding: '6px 10px', fontSize: '11px', fontWeight: 800, borderRadius: '6px' }}>
                       🟢 {selectedDemandLoc.vacancies} Mosquito Vacancies Available
                     </div>
                   ) : (
-                    <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444', padding: '6px 10px', fontSize: '11px', fontWeight: 800 }}>
+                    <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', padding: '6px 10px', fontSize: '11px', fontWeight: 800, borderRadius: '6px' }}>
                       🔴 OVERSTAFFED ({selectedDemandLoc.surplus} Surplus Mosquitoes)
                     </div>
                   )}
@@ -330,7 +335,7 @@ export default function KkuMapWidget() {
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
                     <span style={{ color: 'var(--dim)', display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={12} /> Humans Detected:</span>
-                    <strong style={{ color: '#3b82f6' }}>{selectedDemandLoc.humansDetected}</strong>
+                    <strong style={{ color: '#2563eb' }}>{selectedDemandLoc.humansDetected}</strong>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
@@ -350,7 +355,7 @@ export default function KkuMapWidget() {
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
                     <span style={{ color: 'var(--dim)' }}>🚨 Demand Level:</span>
-                    <strong style={{ color: selectedDemandLoc.demandLevel === 'CRITICAL' ? '#ef4444' : selectedDemandLoc.demandLevel === 'HIGH' ? '#f59e0b' : 'var(--mint)' }}>
+                    <strong style={{ color: selectedDemandLoc.demandLevel === 'CRITICAL' ? '#dc2626' : selectedDemandLoc.demandLevel === 'HIGH' ? '#d97706' : 'var(--mint)' }}>
                       {selectedDemandLoc.demandLevel}
                     </strong>
                   </div>
@@ -358,7 +363,7 @@ export default function KkuMapWidget() {
 
                 {/* Apply Success Notification */}
                 {applySuccessMsg && (
-                  <div style={{ marginTop: '14px', background: 'rgba(16,185,129,0.2)', border: '1px solid #10b981', color: '#10b981', padding: '10px', fontSize: '11px', display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+                  <div style={{ marginTop: '14px', background: 'rgba(5, 150, 105, 0.1)', border: '1px solid var(--mint)', color: 'var(--mint)', padding: '10px', fontSize: '11px', borderRadius: '6px', display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
                     <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                     <span>{applySuccessMsg}</span>
                   </div>
@@ -371,10 +376,11 @@ export default function KkuMapWidget() {
                   style={{
                     width: '100%',
                     marginTop: '16px',
-                    background: selectedDemandLoc.status === 'OVERSTAFFED' ? 'rgba(255,255,255,0.05)' : 'var(--mint)',
-                    color: selectedDemandLoc.status === 'OVERSTAFFED' ? 'var(--dim)' : '#000',
+                    background: selectedDemandLoc.status === 'OVERSTAFFED' ? 'rgba(0,0,0,0.05)' : 'var(--mint)',
+                    color: selectedDemandLoc.status === 'OVERSTAFFED' ? 'var(--dim)' : '#ffffff',
                     border: 'none',
                     padding: '10px 14px',
+                    borderRadius: '6px',
                     fontSize: '11px',
                     fontWeight: 800,
                     cursor: selectedDemandLoc.status === 'OVERSTAFFED' ? 'not-allowed' : 'pointer',

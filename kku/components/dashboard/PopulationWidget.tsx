@@ -43,10 +43,10 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
   useEffect(() => {
     fetchOverview()
 
-    // Auto Refresh every 10 seconds
+    // Auto Refresh every 2 seconds to catch 5-second ticks immediately
     const timer = setInterval(() => {
       fetchOverview()
-    }, 10000)
+    }, 2000)
 
     return () => clearInterval(timer)
   }, [fetchOverview])
@@ -114,12 +114,13 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
   return (
     <div
       style={{
-        background: 'var(--panel)',
+        background: '#ffffff',
         border: '1px solid var(--border)',
-        borderRadius: '8px',
+        borderRadius: '12px',
         padding: '24px',
         position: 'relative',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+        color: 'var(--foreground)'
       }}
     >
       {/* Header Bar */}
@@ -134,7 +135,7 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
           style={{
             fontSize: '9px',
             color: 'var(--mint)',
-            background: 'oklch(0.79 0.17 154 / 12%)',
+            background: 'rgba(5, 150, 105, 0.1)',
             border: '1px solid var(--mint)',
             borderRadius: '4px',
             padding: '3px 10px',
@@ -157,7 +158,7 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
 
       {/* Error State */}
       {error && !data && (
-        <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', color: '#ef4444', padding: '12px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#991b1b', padding: '12px', fontSize: '11px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertCircle size={16} />
           <span>{error}</span>
         </div>
@@ -190,7 +191,7 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
             </div>
 
             <div style={{ textAlign: 'center' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '18px', fontWeight: 800, color: '#ef4444' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '18px', fontWeight: 800, color: '#dc2626' }}>
                 <UserMinus size={16} />
                 -{data.deaths.toLocaleString()}
               </div>
@@ -207,12 +208,13 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
               disabled={updating}
               style={{
                 flex: 1,
-                background: 'oklch(0.79 0.17 154 / 15%)',
+                background: 'rgba(5, 150, 105, 0.1)',
                 border: '1px solid var(--mint)',
                 color: 'var(--mint)',
+                borderRadius: '6px',
                 fontSize: '11px',
                 fontWeight: 800,
-                padding: '8px 12px',
+                padding: '10px 12px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -229,12 +231,13 @@ export default function PopulationWidget({ initialData }: { initialData?: Popula
               disabled={updating}
               style={{
                 flex: 1,
-                background: 'rgba(239,68,68,0.15)',
-                border: '1px solid #ef4444',
-                color: '#ef4444',
+                background: '#fef2f2',
+                border: '1px solid #fca5a5',
+                color: '#dc2626',
+                borderRadius: '6px',
                 fontSize: '11px',
                 fontWeight: 800,
-                padding: '8px 12px',
+                padding: '10px 12px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',

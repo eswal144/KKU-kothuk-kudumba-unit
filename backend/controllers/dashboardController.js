@@ -58,11 +58,26 @@ exports.getPopulationOverview = (req, res) => {
   });
 };
 
-// 4. GET /api/population/events
+// 4. GET /api/population/events (Reads live dynamic KKU civilization events)
 exports.getPopulationEvents = (req, res) => {
-  db.all('SELECT id, event_type, icon, description, created_at FROM population_events ORDER BY created_at DESC LIMIT 10', [], (err, rows) => {
+  db.all('SELECT id, event_type, title, message, created_at FROM kku_events ORDER BY id DESC LIMIT 15', [], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
-    res.json({ events: rows || [] });
+    const formatted = (rows || []).map(r => {
+      let icon = '🦟';
+      if (r.event_type === 'BIRTH') icon = '🍼';
+      else if (r.event_type === 'DEATH') icon = '⚰️';
+      else if (r.event_type === 'ALERT') icon = '⚡';
+      return {
+        id: r.id,
+        event_type: r.event_type || 'CIVILIZATION',
+        icon: icon,
+        title: r.title || '📢 KKU DISPATCH',
+        message: r.message || '',
+        description: `${r.title ? r.title + ': ' : ''}${r.message || ''}`,
+        created_at: r.created_at
+      };
+    });
+    res.json({ events: formatted });
   });
 };
 
@@ -136,19 +151,28 @@ exports.getHealthStatus = (req, res) => {
   });
 };
 
-// 8. GET /api/social/notifications
+// 8. GET /api/social/notifications (Returns live funny dispatches from kku_events)
 exports.getSocialNotifications = (req, res) => {
-  const userId = req.user.id;
-  db.all('SELECT id, message, read_status, created_at FROM social_notifications WHERE user_id = ? ORDER BY created_at DESC', [userId], (err, rows) => {
+  db.all('SELECT id, event_type, title, message, created_at FROM kku_events ORDER BY id DESC LIMIT 8', [], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Database error: ' + err.message });
-
     if (!rows || rows.length === 0) {
-      // Seed default notification
-      db.run('INSERT INTO social_notifications (user_id, message) VALUES (?, "Welcome to KKU Social network!")', [userId], function () {
-        res.json({ notifications: [{ id: 1, message: 'Welcome to KKU Social network!', read_status: 0 }] });
-      });
+      res.json({ notifications: [] });
     } else {
-      res.json({ notifications: rows });
+      const formatted = rows.map(r => {
+        let tag = 'DISPATCH';
+        if (r.event_type === 'BIRTH') tag = 'NEWBORN';
+        else if (r.event_type === 'DEATH') tag = 'HAZARD';
+        else if (r.event_type === 'ALERT') tag = 'ALERT';
+
+        return {
+          id: r.id,
+          message: `${r.title ? r.title + ' — ' : ''}${r.message}`,
+          read_status: 0,
+          created_at: r.created_at,
+          tag
+        };
+      });
+      res.json({ notifications: formatted });
     }
   });
 };

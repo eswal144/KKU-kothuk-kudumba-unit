@@ -48,9 +48,24 @@ app.get('/', (req, res) => {
   });
 });
 
-// Start Server & Background AI Simulation
-app.listen(PORT, () => {
+const simulationEngine = require('./services/simulationEngine');
+
+// Start Server & Background KKU Civilization Engine
+const server = app.listen(PORT, () => {
   console.log(`🚀 KKU Backend API Server running on http://localhost:${PORT}`);
-  simulationService.startSimulationLoop();
+  simulationEngine.startSimulation();
 });
+
+// Graceful Shutdown
+function handleShutdown(signal) {
+  console.log(`\n🛑 Received ${signal}. Shutting down KKU civilization server...`);
+  simulationEngine.stopSimulation();
+  server.close(() => {
+    console.log('💤 KKU HTTP server closed.');
+    process.exit(0);
+  });
+}
+
+process.on('SIGINT', () => handleShutdown('SIGINT'));
+process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 
