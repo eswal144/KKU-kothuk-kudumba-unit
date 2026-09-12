@@ -19,9 +19,12 @@ const simulationService = require('./services/simulationService');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS configuration (allow requests from Next.js frontend)
+// CORS configuration (support localhost, Render, and Vercel frontends)
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, server-to-server) or any development/deployed frontend
+    callback(null, true);
+  },
   credentials: true
 }));
 
