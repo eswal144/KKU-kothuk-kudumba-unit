@@ -1,6 +1,8 @@
 const db = require('../db/database');
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
+const hospitalService = require('./hospitalService');
+const pensionService = require('./pensionService');
 dotenv.config();
 
 // ============================================================================
@@ -23,6 +25,10 @@ function getEnvConfig() {
 let isRunning = false;
 let populationIntervalId = null;
 let salivaIntervalId = null;
+let leaderboardIntervalId = null;
+let hospitalIntervalId = null;
+let vacancyIntervalId = null;
+let pensionIntervalId = null;
 let aiReplenishIntervalId = null;
 let isReplenishingAi = false;
 let lastPopRunTimestamp = null;
@@ -713,8 +719,6 @@ async function generateSimulationEvent(eventType, title, message, citizenId = nu
   });
 }
 
-let leaderboardIntervalId = null;
-
 // ============================================================================
 // 9. LEADERBOARD TICK (Every 20 Seconds: Shifts bite counts & monthly blood)
 // ============================================================================
@@ -740,6 +744,57 @@ async function runLeaderboardTick() {
 }
 
 // ============================================================================
+// 7. DYNAMIC BITE VACANCIES SIMULATION TICK (Every 5 seconds)
+// "in the map add some more points and also urget need a beep sound like syrance 
+// and the new plces need to came dynamicaly old will be fill with in 5 sec and dhoe filed"
+// ============================================================================
+async function runVacancySimulationTick() {
+  try {
+    // 1. Fill active open vacancies so they become '✓ FILLED' within 5 seconds
+    db.all('SELECT * FROM bite_vacancies WHERE current_mosquitoes < required_mosquitoes ORDER BY updated_at ASC LIMIT 2', [], (err, openRows) => {
+      if (!err && openRows && openRows.length > 0) {
+        for (const row of openRows) {
+          const newCurrent = row.required_mosquitoes; // Fill to 100% capacity
+          const newMsg = `✓ VACANCY FILLED: Night squadron at 100% capacity (${newCurrent}/${row.required_mosquitoes} mosquitoes deployed).`;
+
+          db.run(
+            `UPDATE bite_vacancies SET current_mosquitoes = ?, demand_level = 'FILLED', message = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            [newCurrent, newMsg, row.id],
+            () => {}
+          );
+        }
+      }
+
+      // 2. Dynamically spawn fresh URGENT locations from filled ones so new places keep arriving
+      db.all('SELECT * FROM bite_vacancies WHERE demand_level = "FILLED" ORDER BY updated_at ASC LIMIT 2', [], (fErr, filledRows) => {
+        if (!fErr && filledRows && filledRows.length > 0) {
+          for (const filledRow of filledRows) {
+            const freshRequired = Math.floor(24 + Math.random() * 26);
+            const freshCurrent = Math.floor(2 + Math.random() * 6);
+            const humans = Math.floor(55 + Math.random() * 110);
+            const blood = parseFloat((humans * 5.1).toFixed(1));
+            const urgentMsgs = [
+              `🚨 URGENT HOTSPOT: Dynamic human gathering detected! Immediate squadron deployment requested.`,
+              `🚨 EMERGENCY SIREN: High host density at ${filledRow.location_name}! Urgent biter squadron needed.`,
+              `🚨 OUTBREAK ALERT: Sector alert active. ${freshRequired - freshCurrent} biter vacancies open!`
+            ];
+            const randomMsg = urgentMsgs[Math.floor(Math.random() * urgentMsgs.length)];
+
+            db.run(
+              `UPDATE bite_vacancies SET required_mosquitoes = ?, current_mosquitoes = ?, demand_level = 'URGENT', humans_detected = ?, blood_supply_ml = ?, message = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+              [freshRequired, freshCurrent, humans, blood, randomMsg, filledRow.id],
+              () => {}
+            );
+          }
+        }
+      });
+    });
+  } catch (err) {
+    console.error('❌ [Vacancy Simulation Tick Error]:', err.message);
+  }
+}
+
+// ============================================================================
 // 8. SIMULATION LIFECYCLE (Requirement 17)
 // ============================================================================
 function startSimulation() {
@@ -756,6 +811,9 @@ function startSimulation() {
   console.log(`   - Population Tick Interval: ${config.populationTickMs}ms (Births: ${config.minBirthsPerTick}-${config.maxBirthsPerTick}, Deaths: ${config.minDeathsPerTick}-${config.maxDeathsPerTick})`);
   console.log(`   - Saliva Tick Interval:     ${config.salivaTickMs}ms (Decay: ${config.salivaDecayNl} nL)`);
   console.log(`   - Leaderboard Tick:         20000ms (Dynamic rank shifts)`);
+  console.log(`   - Hospital Simulation Tick: 12000ms (Patient recovery & admissions)`);
+  console.log(`   - Dynamic Vacancy Tick:     5000ms (5s dynamic filling & urgent spawning)`);
+  console.log(`   - Mosq-Pension Tick:        25000ms (Retirement detection & pension credits)`);
   console.log(`   - Groq AI Pool Batch Size:  ${config.aiBatchSize} items (Low Threshold: ${config.aiLowQueueThreshold})`);
   console.log('   - Authority: SQLite3 (Persisted state)');
   console.log('============================================================');
@@ -791,6 +849,36 @@ function startSimulation() {
       console.error('[Leaderboard Tick Loop Error]:', err.message);
     }
   }, 20000);
+
+  // 5. Start MOSQ-HOSPITAL Simulation Loop (Every 12 seconds)
+  hospitalService.runHospitalSimulationTick().catch(() => {});
+  hospitalIntervalId = setInterval(async () => {
+    try {
+      await hospitalService.runHospitalSimulationTick();
+    } catch (err) {
+      console.error('[Hospital Tick Loop Error]:', err.message);
+    }
+  }, 12000);
+
+  // 6. Start Dynamic Vacancy Filling & Spawning Loop (Every 5 seconds)
+  runVacancySimulationTick().catch(() => {});
+  vacancyIntervalId = setInterval(async () => {
+    try {
+      await runVacancySimulationTick();
+    } catch (err) {
+      console.error('[Vacancy Tick Loop Error]:', err.message);
+    }
+  }, 5000);
+
+  // 7. Start MOSQ-PENSION Simulation Loop (Every 25 seconds)
+  pensionService.runPensionSimulationTick().catch(() => {});
+  pensionIntervalId = setInterval(async () => {
+    try {
+      await pensionService.runPensionSimulationTick();
+    } catch (err) {
+      console.error('[Pension Tick Loop Error]:', err.message);
+    }
+  }, 25000);
 }
 
 function stopSimulation() {
@@ -809,6 +897,21 @@ function stopSimulation() {
   if (leaderboardIntervalId) {
     clearInterval(leaderboardIntervalId);
     leaderboardIntervalId = null;
+  }
+
+  if (hospitalIntervalId) {
+    clearInterval(hospitalIntervalId);
+    hospitalIntervalId = null;
+  }
+
+  if (vacancyIntervalId) {
+    clearInterval(vacancyIntervalId);
+    vacancyIntervalId = null;
+  }
+
+  if (pensionIntervalId) {
+    clearInterval(pensionIntervalId);
+    pensionIntervalId = null;
   }
 
   if (aiReplenishIntervalId) {

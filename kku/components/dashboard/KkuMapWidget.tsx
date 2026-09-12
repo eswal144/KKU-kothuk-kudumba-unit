@@ -25,6 +25,46 @@ export default function KkuMapWidget() {
   const [applying, setApplying] = useState(false)
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
   const [lastUpdated, setLastUpdated] = useState<string>('')
+  const [sirenEnabled, setSirenEnabled] = useState<boolean>(true)
+
+  // Web Audio API Tactical Siren Synthesizer
+  const playTacticalSirenBeep = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioCtx) return
+      const ctx = new AudioCtx()
+      if (ctx.state === 'suspended') {
+        ctx.resume()
+      }
+      const now = ctx.currentTime
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+
+      osc.type = 'sawtooth'
+
+      // Emergency ambulance/police siren wail (950Hz <-> 650Hz <-> 1050Hz)
+      osc.frequency.setValueAtTime(950, now)
+      osc.frequency.linearRampToValueAtTime(650, now + 0.25)
+      osc.frequency.linearRampToValueAtTime(1050, now + 0.5)
+      osc.frequency.linearRampToValueAtTime(700, now + 0.75)
+      osc.frequency.linearRampToValueAtTime(1000, now + 1.0)
+
+      gain.gain.setValueAtTime(0.18, now)
+      gain.gain.setValueAtTime(0.18, now + 0.85)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.1)
+
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+
+      osc.start(now)
+      osc.stop(now + 1.1)
+      setTimeout(() => {
+        try { ctx.close() } catch (_) {}
+      }, 1200)
+    } catch (e) {
+      // Ignore autoplay restriction
+    }
+  }, [])
 
   // Fetch real vacancy data from backend SQLite API
   const fetchVacancies = useCallback(async (isInitial = false) => {
@@ -36,8 +76,13 @@ export default function KkuMapWidget() {
         setVacancies(data)
         setLastUpdated(new Date().toLocaleTimeString())
         if (isInitial && data.length > 0) {
-          // Default selection to first available or highest demand
           setSelectedVacancyId(data[0].id)
+        }
+
+        // Check for urgent vacancies to sound tactical alert siren
+        const hasUrgent = data.some(v => (v.demandLevel || '').toUpperCase() === 'URGENT')
+        if (hasUrgent && sirenEnabled && !isInitial) {
+          playTacticalSirenBeep()
         }
       }
     } catch (err) {
@@ -45,14 +90,15 @@ export default function KkuMapWidget() {
     } finally {
       if (isInitial) setLoading(false)
     }
-  }, [])
+  }, [sirenEnabled, playTacticalSirenBeep])
 
-  // Initial fetch and automatic 12-second polling loop
+  // Initial fetch and ultra-fast dynamic 2.5-second polling loop
+  // (Ensures vacancies filling within 5s and dynamic new places are reflected in real time)
   useEffect(() => {
     fetchVacancies(true)
     const interval = setInterval(() => {
       fetchVacancies(false)
-    }, 12000)
+    }, 2500)
     return () => clearInterval(interval)
   }, [fetchVacancies])
 
@@ -185,6 +231,52 @@ export default function KkuMapWidget() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={() => {
+              const next = !sirenEnabled
+              setSirenEnabled(next)
+              if (next) playTacticalSirenBeep()
+            }}
+            title="Toggle Tactical Siren Warning Beep for Urgent Vacancies"
+            style={{
+              background: sirenEnabled ? 'rgba(239, 68, 68, 0.12)' : '#f3f4f6',
+              border: `1px solid ${sirenEnabled ? '#ef4444' : 'var(--border)'}`,
+              color: sirenEnabled ? '#ef4444' : 'var(--dim)',
+              padding: '4px 10px',
+              borderRadius: '4px',
+              fontSize: '9px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              letterSpacing: '.05em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {sirenEnabled ? '🚨 SIREN: ON 🔊' : '🚨 SIREN: MUTED 🔇'}
+          </button>
+          <button
+            onClick={() => playTacticalSirenBeep()}
+            title="Test Tactical Siren Sound"
+            style={{
+              background: '#ef4444',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '4px 10px',
+              fontSize: '9px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              letterSpacing: '.05em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: '0 2px 6px rgba(239, 68, 68, 0.3)'
+            }}
+          >
+            🔊 TEST SIREN
+          </button>
           <span style={{ fontSize: '10px', color: 'var(--dim)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <RefreshCw size={11} style={{ animation: 'spin 12s linear infinite' }} /> Synced {lastUpdated || 'just now'}
           </span>
@@ -193,6 +285,57 @@ export default function KkuMapWidget() {
           </span>
         </div>
       </div>
+
+      {/* Dynamic Urgent Siren Alert Banner */}
+      {vacancies.some(v => (v.demandLevel || '').toUpperCase() === 'URGENT') && (
+        <div
+          style={{
+            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.14) 0%, rgba(245, 158, 11, 0.12) 100%)',
+            border: '1px solid #ef4444',
+            borderRadius: '8px',
+            padding: '10px 16px',
+            marginBottom: '18px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px',
+            boxShadow: '0 4px 14px rgba(239, 68, 68, 0.1)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '20px' }}>🚨</span>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#dc2626', letterSpacing: '.04em' }}>
+                URGENT OUTBREAK SIREN ACTIVE &bull; DYNAMIC MOBILIZATION IN SECTOR
+              </div>
+              <div style={{ fontSize: '10px', color: '#991b1b', marginTop: '2px' }}>
+                Open positions filling dynamically within 5s to ✓ FILLED. Fresh urgent hotspots arriving continuously.
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => playTacticalSirenBeep()}
+            style={{
+              background: '#ef4444',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '6px 14px',
+              fontSize: '10px',
+              fontWeight: 800,
+              letterSpacing: '.06em',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            🔊 PLAY SIREN WAIL
+          </button>
+        </div>
+      )}
 
       {/* Quick Market Summary Telemetry Banner */}
       <div

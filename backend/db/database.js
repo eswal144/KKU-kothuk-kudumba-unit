@@ -438,25 +438,195 @@ db.serialize(() => {
     )
   `);
 
-  // Seed Bite Vacancies if empty
-  db.get('SELECT COUNT(*) as count FROM bite_vacancies', (err, row) => {
+  // Seed Bite Vacancies if empty or add extra locations
+  const initialVacancies = [
+    ['College Hostel', 'Residential', 9.9662, 76.2440, 20, 12, 'HIGH', 43, 239.0, 'Need 8 more mosquitoes here.'],
+    ['Night Market Food Court', 'Commercial', 9.9620, 76.2430, 50, 50, 'FILLED', 120, 696.0, '✓ VACANCY FILLED: Night Market is fully staffed.'],
+    ['Public Library', 'Study Facility', 9.9680, 76.2415, 30, 41, 'OVERSATURATED', 2, 10.0, 'OVERSATURATED: Too many mosquitoes reported in this sector.'],
+    ['Cattle Farm Barn', 'Agricultural', 9.9635, 76.2410, 40, 12, 'URGENT', 3, 315.0, 'Emergency recruitment active: 28 more night-shift citizens required.'],
+    ['Subway Station Corridor', 'Transit', 9.9650, 76.2455, 20, 15, 'AVAILABLE', 25, 125.0, '5 open flight positions available near ticket counter.'],
+    ['Riverbank Promenade', 'Recreational', 9.9675, 76.2465, 35, 22, 'HIGH', 65, 325.0, 'Sector 4 is currently understaffed. Host availability is unusually high.'],
+    ['Marine Drive Walkway', 'Waterfront', 9.9780, 76.2770, 25, 10, 'URGENT', 80, 380.0, '🚨 URGENT: High human pedestrian density reported along water promenade.'],
+    ['Fort Kochi Fishery Wharf', 'Harbor', 9.9655, 76.2395, 30, 14, 'HIGH', 35, 180.0, 'Fishery workers resting outdoors. Need 16 biter squadrons.'],
+    ['Lulu Mall Open Atrium', 'Commercial', 10.0275, 76.3080, 45, 20, 'URGENT', 150, 720.0, '🚨 MEGA OUTBREAK: Open-air dining terrace with dense host presence.'],
+    ['Infopark Tech Terrace', 'Technology Hub', 10.0125, 76.3630, 35, 15, 'HIGH', 90, 410.0, 'Late-night coders outdoors on tea break. Open bite roster.'],
+    ['Vyttila Mobility Terminal', 'Transit Hub', 9.9670, 76.3190, 40, 18, 'URGENT', 110, 540.0, '🚨 SQUADRON ALERT: Dense passenger crowds at bus terminal.'],
+    ['Broadway Spice Alley', 'Marketplace', 9.9720, 76.2810, 28, 12, 'HIGH', 55, 260.0, 'Spice market porters taking evening siesta.'],
+    ['Panampilly Nagar Park', 'Recreational', 9.9610, 76.2950, 22, 8, 'HIGH', 45, 220.0, 'Evening joggers resting near central fountain area.'],
+    ['Ernakulam South Railway Station', 'Transit Hub', 9.9678, 76.2895, 38, 15, 'URGENT', 95, 450.0, '🚨 URGENT SIREN: Sleeper coach passengers awaiting midnight train.'],
+    ['Mattancherry Spice Bazaar', 'Marketplace', 9.9575, 76.2590, 28, 10, 'HIGH', 60, 290.0, 'Spice warehouse loaders resting by canal dock.'],
+    ['Jawaharlal Nehru Stadium Outer Ring', 'Sports Arena', 10.0030, 76.3005, 45, 18, 'URGENT', 130, 620.0, '🚨 CODE RED: Night football fans leaving stadium concourse.'],
+    ['MG Road Commercial Promenade', 'Commercial', 9.9710, 76.2825, 32, 14, 'HIGH', 75, 360.0, 'Shoppers gathering at open street tea stalls.'],
+    ['High Court Water Jetty', 'Transit Waterfront', 9.9820, 76.2755, 26, 9, 'URGENT', 68, 330.0, '🚨 WATER JETTY OUTBREAK: Ferry commuters queuing outdoors.'],
+    ['Thoppumpady Harbor Bridge', 'Bridge Corridor', 9.9380, 76.2620, 30, 12, 'HIGH', 50, 240.0, 'Fishermen sorting fresh catch under bridge illumination.'],
+    ['Cherai Beach Sunset Palms', 'Coastal Resort', 10.1410, 76.1785, 35, 16, 'URGENT', 85, 410.0, '🚨 BEACHFRONT ALERT: Tourists relaxing along palm fringe.'],
+    ['Edappally Toll Crossing', 'Traffic Corridor', 10.0245, 76.3095, 42, 20, 'HIGH', 115, 550.0, 'Dense intersection slowdown with open auto-rickshaws.'],
+    ['Willingdon Island Cargo Docks', 'Industrial Port', 9.9520, 76.2680, 34, 11, 'URGENT', 70, 340.0, '🚨 DOCKS ALERT: Container crew night shift on open wharf.'],
+    ['Vennala Market Crossing', 'Marketplace', 10.0010, 76.3210, 24, 8, 'HIGH', 48, 230.0, 'Vegetable wholesale trucks unloading in open air.'],
+    ['Kakkanad SmartCity Water Edge', 'Tech Campus', 10.0080, 76.3580, 36, 15, 'URGENT', 88, 420.0, '🚨 TECH PARK EMERGENCY: Open amphitheater gathering.'],
+    ['Palarivattom Junction Flyover', 'Transit', 10.0045, 76.3115, 30, 14, 'HIGH', 62, 300.0, 'Street food kiosks bustling with customers.'],
+    ['Tripunithura Hill Palace Grounds', 'Heritage Park', 9.9525, 76.3530, 28, 10, 'HIGH', 40, 195.0, 'Evening walkers strolling near historic moat gardens.'],
+    ['Kumbalangi Backwater Mangroves', 'Eco Reserve', 9.8780, 76.2840, 50, 22, 'URGENT', 140, 680.0, '🚨 MASSIVE SWARM SINK: Backwater homestay guests outdoors.'],
+    ['Bolgatty Palace Island Lawn', 'Heritage Waterfront', 9.9880, 76.2685, 30, 12, 'URGENT', 72, 350.0, '🚨 OPEN AIR LAWN: Wedding banquet in unshielded lawn area.']
+  ];
+
+  const vacStmt = db.prepare(`
+    INSERT OR IGNORE INTO bite_vacancies (location_name, category, latitude, longitude, required_mosquitoes, current_mosquitoes, demand_level, humans_detected, blood_supply_ml, message)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  initialVacancies.forEach(v => vacStmt.run(...v));
+  vacStmt.finalize();
+
+  // 20. MOSQ-HOSPITAL Patients Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS hospital_patients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mosquito_id INTEGER,
+      patient_code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      condition TEXT NOT NULL,
+      severity TEXT DEFAULT 'MODERATE',
+      biting_capability INTEGER DEFAULT 25,
+      recovery_percentage INTEGER DEFAULT 40,
+      status TEXT DEFAULT 'HOSPITALIZED',
+      admitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      estimated_discharge DATETIME,
+      discharged_at DATETIME,
+      notes TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (mosquito_id) REFERENCES mosquito_profiles (id) ON DELETE SET NULL
+    )
+  `);
+
+  // 21. Blood Reserve Table (Fictional Resource Simulation)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS blood_reserve (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      current_amount_ml REAL NOT NULL DEFAULT 824.6,
+      maximum_capacity_ml REAL NOT NULL DEFAULT 1000.0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 22. Hospital Events Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS hospital_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      icon TEXT DEFAULT '🏥',
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      patient_name TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Seed Blood Reserve if empty
+  db.get('SELECT COUNT(*) as count FROM blood_reserve', (err, row) => {
+    if (!err && row && row.count === 0) {
+      db.run('INSERT INTO blood_reserve (current_amount_ml, maximum_capacity_ml) VALUES (824.6, 1000.0)');
+    }
+  });
+
+  // Seed Hospital Patients if empty
+  db.get('SELECT COUNT(*) as count FROM hospital_patients', (err, row) => {
     if (!err && row && row.count === 0) {
       const stmt = db.prepare(`
-        INSERT INTO bite_vacancies (location_name, category, latitude, longitude, required_mosquitoes, current_mosquitoes, demand_level, humans_detected, blood_supply_ml, message)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO hospital_patients 
+        (patient_code, name, condition, severity, biting_capability, recovery_percentage, status, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      stmt.run('College Hostel', 'Residential', 9.9662, 76.2440, 20, 12, 'HIGH', 43, 239.0, 'Need 8 more mosquitoes here.');
-      stmt.run('Night Market Food Court', 'Commercial', 9.9620, 76.2430, 50, 50, 'FILLED', 120, 696.0, '✓ VACANCY FILLED: Night Market is fully staffed.');
-      stmt.run('Public Library', 'Study Facility', 9.9680, 76.2415, 30, 41, 'OVERSATURATED', 2, 10.0, 'OVERSATURATED: Too many mosquitoes reported in this sector.');
-      stmt.run('Cattle Farm Barn', 'Agricultural', 9.9635, 76.2410, 40, 12, 'URGENT', 3, 315.0, 'Emergency recruitment active: 28 more night-shift citizens required.');
-      stmt.run('Subway Station Corridor', 'Transit', 9.9650, 76.2455, 20, 15, 'AVAILABLE', 25, 125.0, '5 open flight positions available near ticket counter.');
-      stmt.run('Riverbank Promenade', 'Recreational', 9.9675, 76.2465, 35, 22, 'HIGH', 65, 325.0, 'Sector 4 is currently understaffed. Host availability is unusually high.');
+
+      // 14 initial patients in diverse states: 2 Critical, 7 Injured, 5 Recovering
+      stmt.run('MOS-271', 'Bite Tyson', 'Wing Injury', 'MODERATE', 12, 67, 'HOSPITALIZED', 'Admitted after an unfortunate disagreement with a ceiling fan.');
+      stmt.run('MOS-104', 'Buzz Aldrin', 'Swat Impact', 'CRITICAL', 8, 34, 'CRITICAL', 'Direct blunt trauma from human rolled-up newspaper in Sector 04.');
+      stmt.run('MOS-382', 'Wingston Churchill', 'Flight Fatigue', 'MILD', 45, 88, 'RECOVERING', 'Exhaustion following 6-hour marathon hovering session near verandah light.');
+      stmt.run('MOS-419', 'Mosq Norris', 'Fan Collision', 'SEVERE', 15, 42, 'INJURED', 'Mid-air collision with high-speed table fan rotor.');
+      stmt.run('MOS-512', 'Flyonce Knowles', 'Antenna Damage', 'MODERATE', 30, 71, 'RECOVERING', 'Antenna bent during sudden host head turn.');
+      stmt.run('MOS-663', 'Lord Bitemore', 'Swat Impact', 'CRITICAL', 5, 29, 'CRITICAL', 'Electric swatter glancing blow; proboscis defibrillation administered.');
+      stmt.run('MOS-771', 'Snoop Wing', 'Leg Injury', 'MODERATE', 35, 58, 'INJURED', 'Left hind leg caught in mosquito net mesh.');
+      stmt.run('MOS-805', 'Vlad the Stinger', 'Host Encounter Injury', 'SEVERE', 18, 46, 'INJURED', 'Host slapped reflexively during evening feed.');
+      stmt.run('MOS-899', 'Captain McBiteface', 'Wing Injury', 'MODERATE', 22, 63, 'HOSPITALIZED', 'Turbulence sprain near kitchen exhaust vent.');
+      stmt.run('MOS-921', 'Inspector Proboscis', 'Antenna Damage', 'MILD', 40, 79, 'RECOVERING', 'Antenna sensory overload near burning mosquito coil.');
+      stmt.run('MOS-311', 'Baron Von Buzz', 'Leg Injury', 'MODERATE', 28, 54, 'INJURED', 'Tangled in synthetic fabric fibers.');
+      stmt.run('MOS-455', 'Bitey Baggins', 'Flight Fatigue', 'MILD', 50, 85, 'RECOVERING', 'Low sucrose sugar crash during monsoon downpour flight.');
+      stmt.run('MOS-732', 'General Stinger', 'Unknown Mosquito Incident', 'SEVERE', 10, 39, 'INJURED', 'Found disoriented near ultrasonic repeller device.');
+      stmt.run('MOS-840', 'Doctor Proboscis', 'Wing Injury', 'MILD', 42, 91, 'RECOVERING', 'Minor wing fraying; responding well to sugar nectar therapy.');
+
+      // Seed 9 discharged today for historical telemetry
+      stmt.run('MOS-110', 'Swatson', 'Wing Injury', 'MILD', 100, 100, 'DISCHARGED', 'Cleared for flight and returned to civilian swarming.');
+      stmt.run('MOS-115', 'Agent Nectar', 'Flight Fatigue', 'MILD', 100, 100, 'DISCHARGED', 'Recharged with glucose drip; flight cleared.');
+      stmt.run('MOS-120', 'Count Drakula', 'Swat Impact', 'MODERATE', 100, 100, 'DISCHARGED', 'Wing realignment procedure 100% successful.');
+
       stmt.finalize();
     }
   });
 
+  // Seed Hospital Events if empty
+  db.get('SELECT COUNT(*) as count FROM hospital_events', (err, row) => {
+    if (!err && row && row.count === 0) {
+      const stmt = db.prepare(`
+        INSERT INTO hospital_events (event_type, icon, title, message, patient_name)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      stmt.run('ADMISSION', '🚑', 'NEW ADMISSION', 'Bite Tyson has been admitted after an unfortunate disagreement with a ceiling fan.', 'Bite Tyson');
+      stmt.run('CONDITION_UPDATE', '⚠️', 'CONDITION UPDATE', "Wingston's recovery increased to 88% under nectar therapy.", 'Wingston Churchill');
+      stmt.run('DISCHARGE', '✅', 'PATIENT DISCHARGED', 'Swatson has been cleared for flight and has returned to civilian life.', 'Swatson');
+      stmt.run('ADMISSION', '🚑', 'NEW ADMISSION', 'Buzz Aldrin rushed to ICU after severe newspaper swat impact.', 'Buzz Aldrin');
+      stmt.run('RESOURCE', '🩸', 'BLOOD RESERVE STABLE', 'Community blood reserves stabilized at 824.6 mL (82% capacity).', null);
+      stmt.finalize();
+    }
+  });
+
+  // 13. MOSQ-PENSION TABLES (Fictional KKU Government Simulation)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pension_applications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mosquito_id INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      reason TEXT,
+      status TEXT DEFAULT 'PENDING',
+      pension_amount REAL DEFAULT 0.0,
+      submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      approved_at DATETIME,
+      expires_at DATETIME,
+      review_notes TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (mosquito_id) REFERENCES mosquito_profiles (id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pension_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mosquito_id INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      monthly_amount REAL NOT NULL,
+      start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+      end_date DATETIME,
+      status TEXT DEFAULT 'ACTIVE',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (mosquito_id) REFERENCES mosquito_profiles (id) ON DELETE CASCADE
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS service_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mosquito_id INTEGER NOT NULL,
+      service_type TEXT NOT NULL DEFAULT 'CIVILIAN_FEEDER',
+      service_days INTEGER NOT NULL DEFAULT 14,
+      blood_collected_ml REAL NOT NULL DEFAULT 12.5,
+      start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+      end_date DATETIME,
+      is_veteran INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (mosquito_id) REFERENCES mosquito_profiles (id) ON DELETE CASCADE
+    )
+  `);
 });
 
-
 module.exports = db;
+
 

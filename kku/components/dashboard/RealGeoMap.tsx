@@ -91,7 +91,7 @@ export default function RealGeoMap({
     }
   }, [vacancies, onApply])
 
-  // Update Markers & Popups when vacancies change (NO LARGE CIRCLES)
+// Update Markers with compact iPhone Dynamic-Island-inspired status pills
   useEffect(() => {
     const map = mapInstanceRef.current
     const layerGroup = layerGroupRef.current
@@ -103,251 +103,204 @@ export default function RealGeoMap({
     vacancies.forEach((loc) => {
       if (!loc.latitude || !loc.longitude) return
 
-      const isAvailable = loc.vacancies > 0
-      const isOversaturated = loc.status === 'OVERSATURATED'
-      const isUrgent = loc.demandLevel === 'URGENT' || loc.demandLevel === 'HIGH'
+      // Calculate vacancies dynamically from backend data: requiredMosquitoes - currentMosquitoes
+      const req = loc.requiredMosquitoes || 0
+      const cur = loc.currentMosquitoes || 0
+      const diff = req - cur
 
-      // Color coding (Requirement 8)
-      // GREEN: vacancy available / healthy staffing
-      // AMBER: high demand / urgent recruitment
-      // RED: oversaturated or critical state
-      let pinColor = '#10b981' // KKU mint green
-      if (isOversaturated) {
-        pinColor = '#ef4444' // Red
-      } else if (isUrgent) {
-        pinColor = '#f59e0b' // Amber
+      // Dynamic Island status calculation (Requirements 3, 4, 6)
+      let statusIcon = '🦟'
+      let statusText = `${diff} NEEDED`
+      let statusColor = '#10b981' // KKU green
+      let statusBorder = 'rgba(16, 185, 129, 0.45)'
+      let glowColor = 'rgba(16, 185, 129, 0.35)'
+
+      if (loc.demandLevel === 'FILLED' || loc.status === 'FILLED' || diff <= 0) {
+        statusIcon = '✓'
+        statusText = 'FILLED'
+        statusColor = '#38bdf8' // High-contrast sky blue for filled vacancies
+        statusBorder = 'rgba(56, 189, 248, 0.7)'
+        glowColor = 'rgba(56, 189, 248, 0.5)'
+      } else if ((loc.demandLevel || '').toUpperCase() === 'URGENT') {
+        statusIcon = '🚨'
+        statusText = `${diff} NEEDED`
+        statusColor = '#ef4444' // Emergency red
+        statusBorder = 'rgba(239, 68, 68, 0.8)'
+        glowColor = 'rgba(239, 68, 68, 0.6)'
+      } else if (diff > 0) {
+        statusIcon = '🦟'
+        statusText = `${diff} NEEDED`
+        statusColor = '#10b981' // KKU Green
+        statusBorder = 'rgba(16, 185, 129, 0.5)'
+        glowColor = 'rgba(16, 185, 129, 0.4)'
+      } else {
+        statusIcon = '⚠'
+        statusText = 'OVERSTAFFED'
+        statusColor = '#f59e0b'
+        statusBorder = 'rgba(245, 158, 11, 0.55)'
+        glowColor = 'rgba(245, 158, 11, 0.4)'
       }
 
-      // Compact KKU Map Marker Pin (NO LARGE COVERAGE CIRCLES)
-      const markerIcon = L.divIcon({
-        className: 'kku-clean-marker',
-        html: `
-          <div style="
-            display: flex;
+      const isSelected = selectedVacancyId === loc.id
+
+      // iPhone Dynamic-Island-Style Floating Status Pill (Requirements 1, 2, 5, 7)
+      // Anchored to the EXACT geographic position [loc.latitude, loc.longitude]
+      const markerHtml = `
+        <div class="kku-island-anchor" style="
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          transform: translate(-50%, 0);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          cursor: pointer;
+          pointer-events: auto;
+          user-select: none;
+        ">
+          <!-- Dynamic Island Capsule -->
+          <div class="kku-dynamic-island ${isSelected ? 'selected' : ''}" style="
+            display: inline-flex;
             flex-direction: column;
             align-items: center;
-            transform: translate(-50%, -50%);
-            cursor: pointer;
+            justify-content: center;
+            background: rgba(10, 16, 13, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid ${isSelected ? statusColor : statusBorder};
+            border-radius: 9999px;
+            padding: 3px 12px 4px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.65)${isSelected ? `, 0 0 16px ${statusColor}99` : ''};
+            white-space: nowrap;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+            transform: ${isSelected ? 'scale(1.08)' : 'scale(1)'};
           ">
-            <div style="
-              width: 28px;
-              height: 28px;
-              border-radius: 50%;
-              background: #0a100d;
-              border: 2px solid ${pinColor};
-              box-shadow: 0 0 12px ${pinColor}88, 0 4px 10px rgba(0,0,0,0.7);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 13px;
-              transition: transform 0.2s ease;
-            ">
-              🦟
-            </div>
-            <div style="
-              margin-top: 4px;
-              background: rgba(10, 16, 13, 0.92);
-              border: 1px solid ${pinColor}66;
-              padding: 2px 7px;
-              border-radius: 4px;
-              font-size: 9px;
-              font-weight: 700;
-              color: #f1f5f2;
-              white-space: nowrap;
-              letter-spacing: .04em;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+            <!-- Optional Micro Location Name Label (Requirement 5) -->
+            <span style="
+              font-size: 7.5px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: .08em;
+              color: #9ca3af;
+              line-height: 1.1;
+              margin-bottom: 1px;
             ">
               ${loc.locationName}
+            </span>
+
+            <!-- Primary Status Content (Requirement 3) -->
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              font-size: 11px;
+              font-weight: 800;
+              color: ${statusColor};
+              letter-spacing: .03em;
+              line-height: 1.15;
+            ">
+              <span>${statusIcon}</span>
+              <span>${statusText}</span>
             </div>
           </div>
-        `,
-        iconSize: [30, 48],
-        iconAnchor: [15, 24]
+
+          <!-- Vertical Connector Stem (Concept Diagram: │) -->
+          <div style="
+            width: 1.5px;
+            height: 7px;
+            background: ${statusColor};
+            opacity: 0.9;
+            margin-top: 1px;
+          "></div>
+
+          <!-- Downward Arrow Pointer (Concept Diagram: ▼) -->
+          <div style="
+            width: 0;
+            height: 0;
+            border-left: 3.5px solid transparent;
+            border-right: 3.5px solid transparent;
+            border-top: 5px solid ${statusColor};
+          "></div>
+
+          <!-- Exact Location Geographic Pin Dot (Concept Diagram: 📍 EXACT LOCATION) -->
+          <div style="
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: ${statusColor};
+            border: 1.5px solid #0a100d;
+            box-shadow: 0 0 8px ${statusColor}, 0 2px 5px rgba(0,0,0,0.8);
+            margin-top: 1px;
+            ${isSelected ? 'transform: scale(1.3);' : ''}
+          "></div>
+        </div>
+      `
+
+      const markerIcon = L.divIcon({
+        className: 'kku-dynamic-island-marker',
+        html: markerHtml,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0] // Exact anchor at (0, 0) where the bottom dot sits
       })
 
       const marker = L.marker([loc.latitude, loc.longitude], { icon: markerIcon })
 
-      // Compact Location Popup Content (Requirements 2, 3, 4, 5, 9)
-      const statusBadge = isAvailable
-        ? `<span style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 9px;">🟢 ${loc.vacancies} VACANCIES AVAILABLE</span>`
-        : loc.status === 'FILLED'
-        ? `<span style="background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid #60a5fa; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 9px;">✓ FULLY STAFFED</span>`
-        : `<span style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444; padding: 2px 8px; border-radius: 4px; font-weight: 800; font-size: 9px;">⚠ OVERSATURATED</span>`
-
-      const popupHtml = `
-        <div style="
-          font-family: inherit;
-          color: #f1f5f2;
-          min-width: 240px;
-          max-width: 280px;
-          padding: 2px;
-        ">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; border-bottom: 1px solid #1c2a23; padding-bottom: 6px;">
-            <div>
-              <div style="font-size: 13px; font-weight: 800; color: #ffffff; letter-spacing: .02em;">
-                📍 ${loc.locationName}
-              </div>
-              <div style="font-size: 9px; text-transform: uppercase; color: #8b9891; font-weight: 600; margin-top: 1px;">
-                ${loc.category}
-              </div>
-            </div>
-            <span style="font-size: 8px; font-weight: 800; text-transform: uppercase; color: ${pinColor}; border: 1px solid ${pinColor}; padding: 1px 5px; border-radius: 3px;">
-              ${loc.demandLevel}
-            </span>
-          </div>
-
-          <div style="margin-bottom: 8px;">
-            ${statusBadge}
-          </div>
-
-          <p style="margin: 0 0 10px; font-size: 11px; line-height: 1.4; color: #d1d5db; font-style: italic;">
-            "${loc.message}"
-          </p>
-
-          <div style="
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-            background: #050806;
-            border: 1px solid #1c2a23;
-            border-radius: 6px;
-            padding: 8px;
-            font-size: 10px;
-            margin-bottom: 10px;
-          ">
-            <div>
-              <span style="color: #8b9891; font-size: 8px; text-transform: uppercase; display: block;">NEED</span>
-              <strong style="color: #ffffff;">${loc.requiredMosquitoes} mosquitoes</strong>
-            </div>
-            <div>
-              <span style="color: #8b9891; font-size: 8px; text-transform: uppercase; display: block;">CURRENT</span>
-              <strong style="color: ${isAvailable ? '#10b981' : '#f87171'};">${loc.currentMosquitoes} mosquitoes</strong>
-            </div>
-            <div>
-              <span style="color: #8b9891; font-size: 8px; text-transform: uppercase; display: block;">HUMAN HOSTS</span>
-              <strong style="color: #60a5fa;">👤 ${loc.humansDetected} hosts</strong>
-            </div>
-            <div>
-              <span style="color: #8b9891; font-size: 8px; text-transform: uppercase; display: block;">BLOOD SUPPLY</span>
-              <strong style="color: #f59e0b;">🩸 ${loc.bloodSupplyMl} mL</strong>
-            </div>
-          </div>
-
-          ${
-            isAvailable
-              ? `<button
-                  onclick="window.kkuHandleApplyFromPopup(${loc.id})"
-                  style="
-                    width: 100%;
-                    background: #10b981;
-                    color: #050806;
-                    border: none;
-                    padding: 7px 12px;
-                    border-radius: 4px;
-                    font-size: 11px;
-                    font-weight: 800;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                    text-transform: uppercase;
-                    letter-spacing: .06em;
-                  "
-                >
-                  ✈️ Fly Here & Apply for Vacancy
-                </button>`
-              : `<div style="
-                  text-align: center;
-                  font-size: 10px;
-                  color: #8b9891;
-                  padding: 4px;
-                  background: #050806;
-                  border: 1px solid #1c2a23;
-                  border-radius: 4px;
-                  font-weight: 600;
-                ">
-                  ${isOversaturated ? '⚠ Sector Oversaturated' : '✓ All Positions Occupied'}
-                </div>`
-          }
-        </div>
-      `
-
-      marker.bindPopup(popupHtml, {
-        className: 'kku-dark-popup',
-        closeButton: true,
-        maxWidth: 290
-      })
-
-      marker.on('click', () => {
+      // When user clicks the location marker, select it to show full details in the right-side job panel (Requirement 8)
+      marker.on('click', (e) => {
+        L.DomEvent.stopPropagation(e)
         onSelectVacancy?.(loc)
       })
 
       markersMapRef.current[loc.id] = marker
       layerGroup.addLayer(marker)
     })
-  }, [vacancies, onSelectVacancy])
+  }, [vacancies, selectedVacancyId, onSelectVacancy])
 
-  // Center, zoom, and open popup when selectedVacancyId changes (Requirement 13)
+  // Center & zoom when selectedVacancyId changes (Requirement 13)
   useEffect(() => {
     if (!selectedVacancyId || !mapInstanceRef.current) return
     const map = mapInstanceRef.current
-    const marker = markersMapRef.current[selectedVacancyId]
     const vacancy = vacancies.find((v) => v.id === selectedVacancyId)
 
-    if (marker && vacancy) {
+    if (vacancy) {
       map.flyTo([vacancy.latitude, vacancy.longitude], 16.5, {
         duration: 0.8,
         easeLinearity: 0.25
       })
-      setTimeout(() => {
-        marker.openPopup()
-      }, 400)
     }
   }, [selectedVacancyId, vacancies])
 
   return (
     <>
       <style jsx global>{`
-        @keyframes kkuPopupEnter {
+        .kku-dynamic-island-marker {
+          background: transparent !important;
+          border: none !important;
+        }
+        .kku-island-anchor:hover .kku-dynamic-island {
+          transform: scale(1.06) translateY(-1px) !important;
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8) !important;
+        }
+        @keyframes kkuPulseRing {
           0% {
-            opacity: 0;
-            transform: translateY(6px) scale(0.96);
+            transform: scale(0.95);
+            opacity: 0.8;
+          }
+          50% {
+            transform: scale(1.15);
+            opacity: 0.4;
           }
           100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: scale(0.95);
+            opacity: 0.8;
           }
-        }
-        .kku-dark-popup .leaflet-popup-content-wrapper {
-          background: #0a100d !important;
-          border: 1px solid #1c2a23 !important;
-          border-radius: 8px !important;
-          box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75) !important;
-          padding: 8px !important;
-          animation: kkuPopupEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-        }
-        .kku-dark-popup .leaflet-popup-tip {
-          background: #0a100d !important;
-          border: 1px solid #1c2a23 !important;
-        }
-        .kku-dark-popup .leaflet-popup-content {
-          margin: 6px !important;
-          line-height: 1.4 !important;
-        }
-        .kku-dark-popup a.leaflet-popup-close-button {
-          color: #8b9891 !important;
-          padding: 6px !important;
-        }
-        .kku-dark-popup a.leaflet-popup-close-button:hover {
-          color: #10b981 !important;
         }
       `}</style>
       <div
         ref={mapContainerRef}
         style={{
           width: '100%',
-          height: '520px',
+          height: '540px',
           background: '#050806',
           position: 'relative',
           zIndex: 10

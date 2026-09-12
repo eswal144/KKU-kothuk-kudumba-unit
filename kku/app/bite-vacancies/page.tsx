@@ -39,7 +39,9 @@ export default function BiteVacanciesPage() {
         </a>
         <div className="kku-nav-links">
           <a href="/dashboard">Home</a>
+          <a href="/hospital">🏥 MOSQ-HOSPITAL</a>
           <a href="/bite-vacancies" style={{ color: 'var(--mint)', fontWeight: 800 }}>Bite Vacancies</a>
+          <a href="/pension">🏛️ MOSQ-PENSION</a>
           <a href="/leaderboard">Leaderboard</a>
           <a href="/recharge">🧪 MOSQ-RECHARGE™</a>
         </div>

@@ -51,7 +51,9 @@ export default function LeaderboardPage() {
         </a>
         <div className="kku-nav-links">
           <a href="/dashboard">Home</a>
+          <a href="/hospital">🏥 MOSQ-HOSPITAL</a>
           <a href="/bite-vacancies">Bite Vacancies</a>
+          <a href="/pension">🏛️ MOSQ-PENSION</a>
           <a href="/leaderboard" style={{ color: 'var(--mint)', fontWeight: 800 }}>Leaderboard</a>
           <a href="/recharge">🧪 MOSQ-RECHARGE™</a>
         </div>

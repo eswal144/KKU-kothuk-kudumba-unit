@@ -11,6 +11,8 @@ const mapRoutes = require('./routes/mapRoutes');
 const populationRoutes = require('./routes/populationRoutes');
 const rechargeRoutes = require('./routes/rechargeRoutes');
 const simulationRoutes = require('./routes/simulationRoutes');
+const hospitalRoutes = require('./routes/hospitalRoutes');
+const pensionRoutes = require('./routes/pensionRoutes');
 const simulationService = require('./services/simulationService');
 
 const app = express();
@@ -32,6 +34,8 @@ app.use('/api', mapRoutes);
 app.use('/api', kkuRoutes);
 app.use('/api', rechargeRoutes);
 app.use('/api', simulationRoutes);
+app.use('/api/hospital', hospitalRoutes);
+app.use('/api/pension', pensionRoutes);
 
 // Root endpoint info
 app.get('/', (req, res) => {
