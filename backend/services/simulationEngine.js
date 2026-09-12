@@ -713,6 +713,32 @@ async function generateSimulationEvent(eventType, title, message, citizenId = nu
   });
 }
 
+let leaderboardIntervalId = null;
+
+// ============================================================================
+// 9. LEADERBOARD TICK (Every 20 Seconds: Shifts bite counts & monthly blood)
+// ============================================================================
+async function runLeaderboardTick() {
+  try {
+    db.all('SELECT id, name, bite_count, blood_collected FROM leaderboard_stats ORDER BY RANDOM() LIMIT 2', [], (err, rows) => {
+      if (err || !rows || rows.length === 0) return;
+      for (const row of rows) {
+        const extraBites = Math.floor(1 + Math.random() * 5); // 1-5 bites
+        const extraBlood = Math.round((0.1 + Math.random() * 0.4) * 10) / 10;
+        db.run(
+          'UPDATE leaderboard_stats SET bite_count = bite_count + ?, blood_collected = ROUND(blood_collected + ?, 1) WHERE id = ?',
+          [extraBites, extraBlood, row.id],
+          () => {}
+        );
+      }
+      const names = rows.map(r => r.name).join(' & ');
+      console.log(`🏆 [KKU Leaderboard Tick (20s)]: Field bite counts updated for ${names}. Leaderboard rankings recalculated.`);
+    });
+  } catch (err) {
+    console.error('❌ [KKU Leaderboard Tick Error]:', err.message);
+  }
+}
+
 // ============================================================================
 // 8. SIMULATION LIFECYCLE (Requirement 17)
 // ============================================================================
@@ -729,6 +755,7 @@ function startSimulation() {
   console.log('🦟 KKU AUTOMATIC CIVILIZATION SIMULATION ENGINE ONLINE');
   console.log(`   - Population Tick Interval: ${config.populationTickMs}ms (Births: ${config.minBirthsPerTick}-${config.maxBirthsPerTick}, Deaths: ${config.minDeathsPerTick}-${config.maxDeathsPerTick})`);
   console.log(`   - Saliva Tick Interval:     ${config.salivaTickMs}ms (Decay: ${config.salivaDecayNl} nL)`);
+  console.log(`   - Leaderboard Tick:         20000ms (Dynamic rank shifts)`);
   console.log(`   - Groq AI Pool Batch Size:  ${config.aiBatchSize} items (Low Threshold: ${config.aiLowQueueThreshold})`);
   console.log('   - Authority: SQLite3 (Persisted state)');
   console.log('============================================================');
@@ -754,6 +781,16 @@ function startSimulation() {
       console.error('[Saliva Tick Loop Error]:', err.message);
     }
   }, config.salivaTickMs);
+
+  // 4. Start Leaderboard Tick loop (Every 20 seconds)
+  runLeaderboardTick().catch(() => {});
+  leaderboardIntervalId = setInterval(async () => {
+    try {
+      await runLeaderboardTick();
+    } catch (err) {
+      console.error('[Leaderboard Tick Loop Error]:', err.message);
+    }
+  }, 20000);
 }
 
 function stopSimulation() {
@@ -767,6 +804,11 @@ function stopSimulation() {
   if (salivaIntervalId) {
     clearInterval(salivaIntervalId);
     salivaIntervalId = null;
+  }
+
+  if (leaderboardIntervalId) {
+    clearInterval(leaderboardIntervalId);
+    leaderboardIntervalId = null;
   }
 
   if (aiReplenishIntervalId) {

@@ -14,20 +14,22 @@ export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
 
   useEffect(() => {
-    const token = localStorage.getItem('kku_token')
-    if (!token) {
-      router.replace('/')
-      return
+    const loadLeaderboard = () => {
+      fetch(`${API_BASE}/leaderboard`)
+        .then((res) => res.json())
+        .then((data) => {
+          setLeaderboard(data.leaderboard || [])
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false))
     }
 
-    fetch(`${API_BASE}/leaderboard`)
-      .then((res) => res.json())
-      .then((data) => {
-        setLeaderboard(data.leaderboard || [])
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [router])
+    loadLeaderboard()
+    // Auto-refresh leaderboard every 20 seconds
+    const interval = setInterval(loadLeaderboard, 20000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   if (loading) {
     return (
@@ -65,10 +67,10 @@ export default function LeaderboardPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
           <div>
             <p className="eyebrow" style={{ margin: 0 }}>
-              <span className="eyebrow-dot" /> KKU CIVILIZATION RANKINGS
+              <span className="eyebrow-dot" /> 🦟 MONTHLY MOSQUITO RANKINGS
             </p>
             <h1 style={{ margin: '4px 0 0', fontSize: '24px', fontWeight: 800, color: 'var(--foreground)' }}>
-              🏆 KKU Leaderboard & Hall of Fame
+              🏆 Top Mosquitoes & Monthly Harvest Hall of Fame
             </h1>
           </div>
 

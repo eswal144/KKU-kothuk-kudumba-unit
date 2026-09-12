@@ -81,3 +81,136 @@ exports.createJob = (req, res) => {
     }
   );
 };
+
+// 6. GET /api/jobs/vacancies (Real SQLite3 Bite Vacancies)
+exports.getVacancies = (req, res) => {
+  db.all('SELECT * FROM bite_vacancies ORDER BY id ASC', [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to fetch bite vacancies: ' + err.message });
+    }
+
+    const formatted = (rows || []).map((row) => {
+      const required = row.required_mosquitoes;
+      const current = row.current_mosquitoes;
+      const vacancies = Math.max(0, required - current);
+      const surplus = Math.max(0, current - required);
+
+      let status = 'AVAILABLE';
+      let statusLabel = `🟢 ${vacancies} MOSQUITOES NEEDED`;
+
+      if (current === required) {
+        status = 'FILLED';
+        statusLabel = '✓ VACANCY FILLED';
+      } else if (current > required) {
+        status = 'OVERSATURATED';
+        statusLabel = '⚠ OVERSATURATED';
+      }
+
+      // Contextual message
+      let message = row.message;
+      if (!message || message.trim() === '') {
+        if (current < required) {
+          message = `Need ${vacancies} more mosquitoes here. High-demand bite zone.`;
+        } else if (current === required) {
+          message = '✓ VACANCY FILLED: All positions filled.';
+        } else {
+          message = 'OVERSATURATED: Too many mosquitoes reported in this sector.';
+        }
+      }
+
+      return {
+        id: row.id,
+        locationName: row.location_name,
+        category: row.category,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        requiredMosquitoes: required,
+        currentMosquitoes: current,
+        vacancies,
+        surplus,
+        status,
+        statusLabel,
+        demandLevel: row.demand_level || 'HIGH',
+        humansDetected: row.humans_detected || 10,
+        bloodSupplyMl: row.blood_supply_ml || 50.0,
+        message,
+        updatedAt: row.updated_at
+      };
+    });
+
+    res.json(formatted);
+  });
+};
+
+// 7. POST /api/jobs/apply (Apply for Bite Vacancy)
+exports.applyForVacancy = (req, res) => {
+  const vacancyId = req.body.vacancyId || req.body.locationId;
+  const userId = req.user?.id || 1;
+
+  if (!vacancyId) {
+    return res.status(400).json({ success: false, error: 'vacancyId is required' });
+  }
+
+  db.get('SELECT * FROM bite_vacancies WHERE id = ?', [vacancyId], (err, vacancy) => {
+    if (err || !vacancy) {
+      return res.status(404).json({ success: false, message: 'Bite vacancy location not found.' });
+    }
+
+    // 1. Check if positions are available
+    if (vacancy.current_mosquitoes >= vacancy.required_mosquitoes) {
+      return res.status(400).json({
+        success: false,
+        message: '❌ VACANCY FILLED: This position has already been occupied.'
+      });
+    }
+
+    // 2. Check if mosquito already applied
+    db.get('SELECT id FROM job_applications WHERE vacancy_id = ? AND user_id = ?', [vacancyId, userId], (appErr, existingApp) => {
+      if (existingApp) {
+        return res.status(400).json({
+          success: false,
+          message: 'You already have an active application here.'
+        });
+      }
+
+      // 3. Create application & increment current_mosquitoes
+      db.run('INSERT INTO job_applications (vacancy_id, user_id, status) VALUES (?, ?, "ACCEPTED")', [vacancyId, userId], function (insErr) {
+        if (insErr) {
+          return res.status(500).json({ success: false, message: 'Failed to record application: ' + insErr.message });
+        }
+
+        const newCurrent = vacancy.current_mosquitoes + 1;
+        const newVacancies = Math.max(0, vacancy.required_mosquitoes - newCurrent);
+
+        let newMsg = vacancy.message;
+        if (newVacancies === 0) {
+          newMsg = `✓ VACANCY FILLED: ${vacancy.location_name} is fully staffed.`;
+        } else {
+          newMsg = `Need ${newVacancies} more mosquitoes here.`;
+        }
+
+        db.run('UPDATE bite_vacancies SET current_mosquitoes = ?, message = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [newCurrent, newMsg, vacancyId], () => {});
+
+        // Log civilization event
+        db.run('INSERT INTO kku_events (event_type, title, message) VALUES (?, ?, ?)',
+          ['DEPLOYMENT', '💼 JOB ACCEPTED', `A citizen mosquito was deployed to ${vacancy.location_name}. Remaining vacancies: ${newVacancies}.`],
+          () => {}
+        );
+
+        res.json({
+          success: true,
+          message: `💼 JOB APPLICATION ACCEPTED: You have been assigned to ${vacancy.location_name}.`,
+          vacancy: {
+            id: vacancy.id,
+            locationName: vacancy.location_name,
+            currentMosquitoes: newCurrent,
+            requiredMosquitoes: vacancy.required_mosquitoes,
+            vacancies: newVacancies,
+            status: newVacancies === 0 ? 'FILLED' : 'AVAILABLE'
+          }
+        });
+      });
+    });
+  });
+};
+

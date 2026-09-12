@@ -247,7 +247,10 @@ export default function DashboardPage() {
         {/* 3. 🔔 FLOATING LEFT-SIDE POP-UP NOTIFICATION BOX (Civilization Events & Migration Radar) */}
         <PopulationEvents events={events} migrationAlerts={migrationAlerts} />
 
-
+        {/* 4. 🏆 LIVE MOSQUITO LEADERBOARD (UPDATES EVERY 20s) */}
+        <div style={{ marginBottom: '40px' }}>
+          <Leaderboard leaderboard={leaderboard} />
+        </div>
 
         {/* Footer */}
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--dim)' }}>

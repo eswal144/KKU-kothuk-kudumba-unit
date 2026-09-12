@@ -1,207 +1,156 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Globe,
   MapPin,
   Users,
-  Dog,
   CheckCircle2,
-  Send
+  AlertTriangle,
+  Flame,
+  Send,
+  RefreshCw,
+  Briefcase
 } from 'lucide-react'
-import { DemandLocation } from './RealGeoMap'
+import { BiteVacancy } from './RealGeoMap'
 
 // Dynamically import RealGeoMap to avoid SSR window/Leaflet issues
 const RealGeoMap = dynamic(() => import('./RealGeoMap'), { ssr: false })
 
 export default function KkuMapWidget() {
+  const [vacancies, setVacancies] = useState<BiteVacancy[]>([])
   const [loading, setLoading] = useState(true)
-
-  // Mosquito Demand Map Data
-  const [demandLocations, setDemandLocations] = useState<DemandLocation[]>([
-    {
-      id: 1,
-      name: 'College Hostel',
-      category: 'Residential',
-      currentMosquitoes: 17,
-      humansDetected: 43,
-      animalsDetected: 2,
-      requiredMosquitoes: 50,
-      vacancies: 33,
-      surplus: 0,
-      status: 'VACANCIES_AVAILABLE',
-      demandLevel: 'HIGH',
-      estimatedBloodmL: '239.0 mL',
-      lat: 9.9662,
-      lng: 76.2440
-    },
-    {
-      id: 2,
-      name: 'Public Library',
-      category: 'Study Facility',
-      currentMosquitoes: 94,
-      humansDetected: 2,
-      animalsDetected: 0,
-      requiredMosquitoes: 15,
-      vacancies: 0,
-      surplus: 79,
-      status: 'OVERSTAFFED',
-      demandLevel: 'LOW',
-      estimatedBloodmL: '10.0 mL',
-      lat: 9.9680,
-      lng: 76.2415
-    },
-    {
-      id: 3,
-      name: 'Night Market Food Court',
-      category: 'Commercial',
-      currentMosquitoes: 28,
-      humansDetected: 120,
-      animalsDetected: 8,
-      requiredMosquitoes: 110,
-      vacancies: 82,
-      surplus: 0,
-      status: 'VACANCIES_AVAILABLE',
-      demandLevel: 'CRITICAL',
-      estimatedBloodmL: '696.0 mL',
-      lat: 9.9620,
-      lng: 76.2430
-    },
-    {
-      id: 4,
-      name: 'Cattle Farm Barn',
-      category: 'Agricultural',
-      currentMosquitoes: 12,
-      humansDetected: 3,
-      animalsDetected: 25,
-      requiredMosquitoes: 40,
-      vacancies: 28,
-      surplus: 0,
-      status: 'VACANCIES_AVAILABLE',
-      demandLevel: 'HIGH',
-      estimatedBloodmL: '315.0 mL',
-      lat: 9.9635,
-      lng: 76.2410
-    },
-    {
-      id: 5,
-      name: 'Subway Station Corridor',
-      category: 'Transit',
-      currentMosquitoes: 60,
-      humansDetected: 10,
-      animalsDetected: 0,
-      requiredMosquitoes: 20,
-      vacancies: 0,
-      surplus: 40,
-      status: 'OVERSTAFFED',
-      demandLevel: 'LOW',
-      estimatedBloodmL: '50.0 mL',
-      lat: 9.9650,
-      lng: 76.2455
-    }
-  ])
-  const [selectedDemandLoc, setSelectedDemandLoc] = useState<DemandLocation | null>(null)
+  const [selectedVacancyId, setSelectedVacancyId] = useState<number | null>(null)
   const [applying, setApplying] = useState(false)
-  const [applySuccessMsg, setApplySuccessMsg] = useState<string | null>(null)
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<string>('')
 
-  useEffect(() => {
-    // Fetch Demand Map Data
-    fetch('http://localhost:5000/api/map/demand-data')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.locations && data.locations.length > 0) {
-          setDemandLocations(data.locations)
-          setSelectedDemandLoc(data.locations[0])
+  // Fetch real vacancy data from backend SQLite API
+  const fetchVacancies = useCallback(async (isInitial = false) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/jobs/vacancies')
+      if (!res.ok) throw new Error('Failed to load vacancies')
+      const data: BiteVacancy[] = await res.json()
+      if (Array.isArray(data)) {
+        setVacancies(data)
+        setLastUpdated(new Date().toLocaleTimeString())
+        if (isInitial && data.length > 0) {
+          // Default selection to first available or highest demand
+          setSelectedVacancyId(data[0].id)
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+      }
+    } catch (err) {
+      console.error('Error loading KKU bite vacancies:', err)
+    } finally {
+      if (isInitial) setLoading(false)
+    }
   }, [])
 
+  // Initial fetch and automatic 12-second polling loop
   useEffect(() => {
-    if (!selectedDemandLoc && demandLocations.length > 0) {
-      setSelectedDemandLoc(demandLocations[0])
-    }
-  }, [demandLocations, selectedDemandLoc])
+    fetchVacancies(true)
+    const interval = setInterval(() => {
+      fetchVacancies(false)
+    }, 12000)
+    return () => clearInterval(interval)
+  }, [fetchVacancies])
 
-  const handleApplyForVacancy = async (locId: number) => {
+  // Clear notification toast after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
+
+  // Sorted job alerts (Requirement 12)
+  // Priority: 1. URGENT, 2. HIGH DEMAND, 3. AVAILABLE, 4. FILLED, 5. OVERSATURATED
+  // Within each category, sort by highest vacancies first
+  const sortedJobAlerts = useMemo(() => {
+    const getPriority = (v: BiteVacancy) => {
+      const level = (v.demandLevel || '').toUpperCase()
+      const status = (v.status || '').toUpperCase()
+      if (level === 'URGENT' || status === 'URGENT') return 1
+      if (level.includes('HIGH') || level === 'CRITICAL') return 2
+      if (status === 'AVAILABLE' || v.vacancies > 0) return 3
+      if (status === 'FILLED' || v.vacancies === 0) return 4
+      if (status === 'OVERSATURATED') return 5
+      return 3
+    }
+
+    return [...vacancies].sort((a, b) => {
+      const prioA = getPriority(a)
+      const prioB = getPriority(b)
+      if (prioA !== prioB) return prioA - prioB
+      // Within each category, highest number of vacancies first
+      return b.vacancies - a.vacancies
+    })
+  }, [vacancies])
+
+  // Currently selected vacancy object
+  const selectedVacancy = useMemo(() => {
+    return vacancies.find((v) => v.id === selectedVacancyId) || vacancies[0] || null
+  }, [vacancies, selectedVacancyId])
+
+  // Handle job application (Requirement 14 & 15)
+  const handleApply = async (targetVacancy: BiteVacancy) => {
+    if (!targetVacancy) return
     setApplying(true)
-    setApplySuccessMsg(null)
+    setNotification(null)
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('kku_token') : null
-      const res = await fetch('http://localhost:5000/api/map/demand/apply', {
+      const res = await fetch('http://localhost:5000/api/jobs/apply', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ locationId: locId })
+        body: JSON.stringify({ vacancyId: targetVacancy.id })
       })
 
       const data = await res.json()
-      if (res.ok) {
-        setApplySuccessMsg(data.message || 'Deployed to vacancy location!')
+      if (res.ok && data.success) {
+        setNotification({
+          type: 'success',
+          message: data.message || `💼 JOB APPLICATION ACCEPTED: You have been assigned to ${targetVacancy.locationName}.`
+        })
       } else {
-        setApplySuccessMsg(`Flight Path Locked! You have deployed to ${selectedDemandLoc?.name}.`)
+        setNotification({
+          type: 'error',
+          message: data.message || `❌ VACANCY FILLED: Position unavailable.`
+        })
       }
 
-      setDemandLocations((prev) =>
-        prev.map((loc) => {
-          if (loc.id === locId) {
-            const newCurrent = loc.currentMosquitoes + 1
-            const newVacancies = loc.requiredMosquitoes - newCurrent
-            const updatedLoc: DemandLocation = {
-              ...loc,
-              currentMosquitoes: newCurrent,
-              vacancies: newVacancies > 0 ? newVacancies : 0,
-              surplus: newVacancies < 0 ? Math.abs(newVacancies) : 0,
-              status: newVacancies <= 0 ? 'OVERSTAFFED' : 'VACANCIES_AVAILABLE'
-            }
-            if (selectedDemandLoc?.id === locId) {
-              setSelectedDemandLoc(updatedLoc)
-            }
-            return updatedLoc
-          }
-          return loc
-        })
-      )
+      // Re-fetch backend data to synchronize true state immediately
+      await fetchVacancies(false)
     } catch {
-      setApplySuccessMsg(`Flight Path Locked! You have deployed to ${selectedDemandLoc?.name}.`)
-      setDemandLocations((prev) =>
-        prev.map((loc) => {
-          if (loc.id === locId) {
-            const newCurrent = loc.currentMosquitoes + 1
-            const newVacancies = loc.requiredMosquitoes - newCurrent
-            const updatedLoc: DemandLocation = {
-              ...loc,
-              currentMosquitoes: newCurrent,
-              vacancies: newVacancies > 0 ? newVacancies : 0,
-              surplus: newVacancies < 0 ? Math.abs(newVacancies) : 0,
-              status: newVacancies <= 0 ? 'OVERSTAFFED' : 'VACANCIES_AVAILABLE'
-            }
-            if (selectedDemandLoc?.id === locId) {
-              setSelectedDemandLoc(updatedLoc)
-            }
-            return updatedLoc
-          }
-          return loc
-        })
-      )
+      setNotification({
+        type: 'info',
+        message: `Deployment flight vector confirmed for ${targetVacancy.locationName}.`
+      })
+      await fetchVacancies(false)
     } finally {
       setApplying(false)
     }
   }
 
-  const totalVacancies = demandLocations.reduce((sum, l) => sum + l.vacancies, 0)
-  const totalMosquitoes = demandLocations.reduce((sum, l) => sum + l.currentMosquitoes, 0)
-  const totalHumans = demandLocations.reduce((sum, l) => sum + l.humansDetected, 0)
+  // Handle clicking "VIEW LOCATION" on a job alert card (Requirement 13)
+  const handleViewLocation = (vacancyId: number) => {
+    setSelectedVacancyId(vacancyId)
+  }
+
+  // Telemetry aggregates
+  const totalVacancies = vacancies.reduce((sum, v) => sum + (v.vacancies || 0), 0)
+  const totalMosquitoes = vacancies.reduce((sum, v) => sum + (v.currentMosquitoes || 0), 0)
+  const totalHumans = vacancies.reduce((sum, v) => sum + (v.humansDetected || 0), 0)
+  const topDemandSector = sortedJobAlerts.find((v) => v.vacancies > 0)?.locationName || 'Night Market Food Court'
 
   if (loading) {
     return (
-      <div style={{ background: 'var(--panel)', border: '1px solid var(--border)', padding: '24px', textAlign: 'center' }}>
-        <p className="eyebrow"><span className="eyebrow-dot" /> Loading Mosquito Demand & Job Vacancy Map...</p>
+      <div style={{ background: '#ffffff', border: '1px solid var(--border)', borderRadius: '12px', padding: '32px', textAlign: 'center' }}>
+        <p className="eyebrow" style={{ margin: 0 }}><span className="eyebrow-dot" /> Accessing KKU Real Geography Bite Vacancies...</p>
       </div>
     )
   }
@@ -221,18 +170,27 @@ export default function KkuMapWidget() {
         color: 'var(--foreground)'
       }}
     >
-      {/* Map Header */}
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '20px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Globe size={20} style={{ color: 'var(--mint)' }} />
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '.04em' }}>
-              🗺️ MOSQUITO DEMAND MAP &bull; BITE VACANCIES
+              🗺️ KKU MOSQUITO BITE MARKETPLACE &bull; BITE VACANCIES
             </h3>
           </div>
           <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--dim)' }}>
-            Real-time market view matching active mosquitoes to high-demand blood locations with open bite vacancies across the locality.
+            Real-time government job board matching citizen mosquitoes with verified host sectors. Clean tactical markers &bull; Zero circular bubbles.
           </p>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '10px', color: 'var(--dim)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <RefreshCw size={11} style={{ animation: 'spin 12s linear infinite' }} /> Synced {lastUpdated || 'just now'}
+          </span>
+          <span style={{ fontSize: '9px', background: 'oklch(0.79 0.17 154 / 10%)', border: '1px solid var(--mint)', color: 'var(--mint)', padding: '4px 8px', borderRadius: '4px', fontWeight: 800, letterSpacing: '.06em' }}>
+            ● REAL GEOGRAPHY ONLINE
+          </span>
         </div>
       </div>
 
@@ -242,8 +200,8 @@ export default function KkuMapWidget() {
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: '12px',
-          marginBottom: '18px',
-          background: '#ffffff',
+          marginBottom: '20px',
+          background: '#fbfdfc',
           border: '1px solid var(--border)',
           borderRadius: '8px',
           padding: '14px 18px'
@@ -251,7 +209,7 @@ export default function KkuMapWidget() {
       >
         <div>
           <span style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 700 }}>🟢 OPEN BITE VACANCIES</span>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--mint)' }}>{totalVacancies} Vacancies</div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--mint)' }}>{totalVacancies} Positions</div>
         </div>
         <div>
           <span style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 700 }}>🦟 ACTIVE MOSQUITO WORKFORCE</span>
@@ -262,152 +220,300 @@ export default function KkuMapWidget() {
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#2563eb' }}>{totalHumans} Hosts</div>
         </div>
         <div>
-          <span style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 700 }}>🩸 TOP DEMAND SECTOR</span>
+          <span style={{ fontSize: '9px', textTransform: 'uppercase', color: 'var(--dim)', fontWeight: 700 }}>🩸 TOP RECRUITMENT SECTOR</span>
           <div style={{ fontSize: '15px', fontWeight: 800, color: '#d97706', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            Night Market Food Court
+            {topDemandSector}
           </div>
         </div>
       </div>
 
-      {/* Interactive Map Display Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px' }}>
+      {/* Notification Toast */}
+      {notification && (
+        <div
+          style={{
+            marginBottom: '16px',
+            padding: '12px 16px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: notification.type === 'success' ? 'oklch(0.79 0.17 154 / 12%)' : notification.type === 'error' ? '#fef2f2' : '#f0fdf4',
+            border: `1px solid ${notification.type === 'success' ? 'var(--mint)' : notification.type === 'error' ? '#fca5a5' : '#86efac'}`,
+            color: notification.type === 'success' ? 'var(--mint)' : notification.type === 'error' ? '#dc2626' : '#15803d'
+          }}
+        >
+          {notification.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+          <span>{notification.message}</span>
+        </div>
+      )}
+
+      {/* Main Interactive Grid: Clean Map + KKU Job Alerts Side Panel */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '20px', alignItems: 'stretch' }}>
         
-        {/* MAP VIEWPORT */}
-        <div style={{ position: 'relative', width: '100%', height: '480px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+        {/* MAP VIEWPORT (NO DEMAND CIRCLES, COMPACT MARKERS & POPUPS) */}
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: '540px',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            background: '#050806'
+          }}
+        >
           <RealGeoMap
-            demandLocations={demandLocations}
-            onSelectDemandLocation={(loc) => {
-              setSelectedDemandLoc(loc)
-              setApplySuccessMsg(null)
+            vacancies={vacancies}
+            selectedVacancyId={selectedVacancyId}
+            onSelectVacancy={(loc) => {
+              setSelectedVacancyId(loc.id)
+            }}
+            onApply={(loc) => {
+              handleApply(loc)
             }}
           />
         </div>
 
-        {/* DEMAND LOCATION TELEMETRY SIDEBAR */}
+        {/* SIDE JOB NOTIFICATION PANEL: 💼 KKU JOB ALERTS (Requirements 10, 11, 12, 13) */}
         <div
           style={{
             background: '#ffffff',
             border: '1px solid var(--border)',
             borderRadius: '8px',
-            padding: '18px',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
-            maxHeight: '480px',
-            overflowY: 'auto'
+            height: '540px',
+            overflow: 'hidden',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
           }}
         >
-          <div>
-            {selectedDemandLoc ? (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.14em', color: 'var(--mint)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <MapPin size={12} /> BITE VACANCY TELEMETRY
-                  </span>
-                  <span style={{ fontSize: '9px', background: 'rgba(0,0,0,0.04)', padding: '2px 6px', color: 'var(--dim)', borderRadius: '4px' }}>
-                    {selectedDemandLoc.category}
-                  </span>
-                </div>
-
-                <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--foreground)' }}>
-                  📍 {selectedDemandLoc.name}
+          {/* Side Panel Header */}
+          <div
+            style={{
+              padding: '14px 16px',
+              borderBottom: '1px solid var(--border)',
+              background: '#fbfdfc',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Briefcase size={16} style={{ color: 'var(--mint)' }} />
+                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '.04em' }}>
+                  💼 KKU JOB ALERTS
                 </h4>
+              </div>
+              <span style={{ fontSize: '10px', color: 'var(--dim)', marginTop: '2px', display: 'block' }}>
+                Prioritized active bite opportunities
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: '9px',
+                fontWeight: 800,
+                color: 'var(--mint)',
+                background: 'oklch(0.79 0.17 154 / 12%)',
+                border: '1px solid var(--mint)',
+                padding: '2px 6px',
+                borderRadius: '4px'
+              }}
+            >
+              {sortedJobAlerts.filter((j) => j.vacancies > 0).length} ACTIVE
+            </span>
+          </div>
 
-                {/* Vacancy Status Pill */}
-                <div style={{ marginTop: '8px', marginBottom: '14px' }}>
-                  {selectedDemandLoc.status === 'VACANCIES_AVAILABLE' ? (
-                    <div style={{ background: 'rgba(5, 150, 105, 0.1)', border: '1px solid var(--mint)', color: 'var(--mint)', padding: '6px 10px', fontSize: '11px', fontWeight: 800, borderRadius: '6px' }}>
-                      🟢 {selectedDemandLoc.vacancies} Mosquito Vacancies Available
-                    </div>
-                  ) : (
-                    <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', padding: '6px 10px', fontSize: '11px', fontWeight: 800, borderRadius: '6px' }}>
-                      🔴 OVERSTAFFED ({selectedDemandLoc.surplus} Surplus Mosquitoes)
-                    </div>
-                  )}
-                </div>
+          {/* Scrollable Job Alert Cards */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}
+          >
+            {sortedJobAlerts.map((job) => {
+              const isSelected = selectedVacancyId === job.id
+              const isAvailable = job.vacancies > 0
+              const isFilled = job.status === 'FILLED' || job.vacancies === 0
+              const isOversaturated = job.status === 'OVERSATURATED'
+              const isUrgent = job.demandLevel === 'URGENT'
+              const isHighDemand = job.demandLevel === 'HIGH'
 
-                {/* Telemetry Stats Breakdown */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <span style={{ color: 'var(--dim)', display: 'flex', alignItems: 'center', gap: '4px' }}>🦟 Current Mosquitoes:</span>
-                    <strong style={{ color: 'var(--foreground)' }}>{selectedDemandLoc.currentMosquitoes}</strong>
-                  </div>
+              // Urgency Badge configuration
+              let badgeText = '🟢 VACANCY'
+              let badgeColor = 'var(--mint)'
+              let badgeBg = 'rgba(16, 185, 129, 0.1)'
+              let badgeBorder = 'rgba(16, 185, 129, 0.4)'
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <span style={{ color: 'var(--dim)', display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={12} /> Humans Detected:</span>
-                    <strong style={{ color: '#2563eb' }}>{selectedDemandLoc.humansDetected}</strong>
-                  </div>
+              if (isUrgent) {
+                badgeText = '🔥 URGENT RECRUITMENT'
+                badgeColor = '#dc2626'
+                badgeBg = '#fef2f2'
+                badgeBorder = '#fca5a5'
+              } else if (isHighDemand) {
+                badgeText = '🔥 HIGH DEMAND'
+                badgeColor = '#d97706'
+                badgeBg = '#fffbeb'
+                badgeBorder = '#fde68a'
+              } else if (isOversaturated) {
+                badgeText = '⚠ OVERSATURATED'
+                badgeColor = '#dc2626'
+                badgeBg = '#fef2f2'
+                badgeBorder = '#fca5a5'
+              } else if (isFilled) {
+                badgeText = '✓ FULLY STAFFED'
+                badgeColor = '#4b5563'
+                badgeBg = '#f3f4f6'
+                badgeBorder = '#e5e7eb'
+              }
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <span style={{ color: 'var(--dim)', display: 'flex', alignItems: 'center', gap: '4px' }}><Dog size={12} /> Animals Detected:</span>
-                    <strong style={{ color: 'var(--foreground)' }}>{selectedDemandLoc.animalsDetected}</strong>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <span style={{ color: 'var(--dim)' }}>📋 Target Requirement:</span>
-                    <strong style={{ color: 'var(--foreground)' }}>{selectedDemandLoc.requiredMosquitoes} mosquitoes</strong>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <span style={{ color: 'var(--dim)' }}>🩸 Est. Blood Supply:</span>
-                    <strong style={{ color: 'var(--mint)' }}>{selectedDemandLoc.estimatedBloodmL}</strong>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <span style={{ color: 'var(--dim)' }}>🚨 Demand Level:</span>
-                    <strong style={{ color: selectedDemandLoc.demandLevel === 'CRITICAL' ? '#dc2626' : selectedDemandLoc.demandLevel === 'HIGH' ? '#d97706' : 'var(--mint)' }}>
-                      {selectedDemandLoc.demandLevel}
-                    </strong>
-                  </div>
-                </div>
-
-                {/* Apply Success Notification */}
-                {applySuccessMsg && (
-                  <div style={{ marginTop: '14px', background: 'rgba(5, 150, 105, 0.1)', border: '1px solid var(--mint)', color: 'var(--mint)', padding: '10px', fontSize: '11px', borderRadius: '6px', display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
-                    <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <span>{applySuccessMsg}</span>
-                  </div>
-                )}
-
-                {/* Action Button: Fly Here & Apply */}
-                <button
-                  onClick={() => handleApplyForVacancy(selectedDemandLoc.id)}
-                  disabled={applying || selectedDemandLoc.status === 'OVERSTAFFED'}
+              return (
+                <div
+                  key={job.id}
                   style={{
-                    width: '100%',
-                    marginTop: '16px',
-                    background: selectedDemandLoc.status === 'OVERSTAFFED' ? 'rgba(0,0,0,0.05)' : 'var(--mint)',
-                    color: selectedDemandLoc.status === 'OVERSTAFFED' ? 'var(--dim)' : '#ffffff',
-                    border: 'none',
-                    padding: '10px 14px',
+                    background: isSelected ? 'rgba(16, 185, 129, 0.04)' : '#ffffff',
+                    border: `1px solid ${isSelected ? 'var(--mint)' : 'var(--border)'}`,
                     borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    cursor: selectedDemandLoc.status === 'OVERSTAFFED' ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    transition: 'all .2s'
+                    padding: '12px',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isSelected ? '0 0 0 1px var(--mint)' : 'none'
                   }}
                 >
-                  <Send size={14} />
-                  {applying ? 'Deploying Wing Vector...' : selectedDemandLoc.status === 'OVERSTAFFED' ? 'Location Overstaffed' : '🦟 Fly Here & Apply for Vacancy'}
-                </button>
-              </>
-            ) : (
-              <p style={{ fontSize: '11px', color: 'var(--dim)' }}>Click any location marker on the map to view bite vacancies.</p>
-            )}
+                  {/* Status Badge & Category */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 800,
+                        color: badgeColor,
+                        background: badgeBg,
+                        border: `1px solid ${badgeBorder}`,
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        letterSpacing: '.03em',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}
+                    >
+                      {badgeText}
+                    </span>
+                    <span style={{ fontSize: '9px', color: 'var(--dim)', background: 'rgba(0,0,0,0.03)', padding: '1px 5px', borderRadius: '3px' }}>
+                      {job.category}
+                    </span>
+                  </div>
+
+                  {/* Location Name */}
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--foreground)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <MapPin size={13} style={{ color: 'var(--mint)', flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {job.locationName}
+                    </span>
+                  </div>
+
+                  {/* Vacancy Info */}
+                  <div style={{ fontSize: '11px', color: 'var(--foreground)', marginBottom: '6px' }}>
+                    {isAvailable ? (
+                      <strong style={{ color: 'var(--mint)' }}>{job.vacancies} mosquitoes needed</strong>
+                    ) : isFilled ? (
+                      <span style={{ color: 'var(--dim)' }}>0 vacancies available (Fully Staffed)</span>
+                    ) : (
+                      <span style={{ color: '#dc2626' }}>+{job.surplus || (job.currentMosquitoes - job.requiredMosquitoes)} surplus mosquitoes</span>
+                    )}
+                    <span style={{ color: 'var(--dim)', fontSize: '10px', marginLeft: '6px' }}>
+                      ({job.currentMosquitoes} / {job.requiredMosquitoes})
+                    </span>
+                  </div>
+
+                  {/* Contextual Notice */}
+                  <p style={{ margin: '0 0 10px', fontSize: '10px', color: 'var(--dim)', fontStyle: 'italic', lineHeight: 1.3 }}>
+                    &ldquo;{job.message}&rdquo;
+                  </p>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => handleViewLocation(job.id)}
+                      style={{
+                        flex: 1,
+                        background: isSelected ? 'var(--mint)' : 'rgba(0,0,0,0.04)',
+                        color: isSelected ? '#ffffff' : 'var(--foreground)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '4px',
+                        padding: '6px 8px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <MapPin size={11} /> [ VIEW LOCATION ]
+                    </button>
+
+                    {isAvailable && (
+                      <button
+                        onClick={() => handleApply(job)}
+                        disabled={applying}
+                        style={{
+                          background: 'oklch(0.79 0.17 154 / 15%)',
+                          color: 'var(--mint)',
+                          border: '1px solid var(--mint)',
+                          borderRadius: '4px',
+                          padding: '6px 10px',
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          cursor: applying ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          whiteSpace: 'nowrap'
+                        }}
+                        title="Fly here and submit application"
+                      >
+                        <Send size={10} /> Apply
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
-          <div style={{ marginTop: '20px', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--dim)', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
-            KKU MOSQUITO BITE MARKET &bull; CARTO REAL GEOGRAPHY
-          </div>
+          {/* Selected Vacancy Quick Telemetry Footer */}
+          {selectedVacancy && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderTop: '1px solid var(--border)',
+                background: '#fbfdfc',
+                fontSize: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ color: 'var(--dim)' }}>Target Sector:</span>
+                <strong style={{ color: 'var(--foreground)' }}>{selectedVacancy.locationName}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--dim)' }}>Hosts & Supply:</span>
+                <span style={{ color: '#2563eb', fontWeight: 700 }}>
+                  👤 {selectedVacancy.humansDetected} hosts &bull; 🩸 {selectedVacancy.bloodSupplyMl} mL
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
     </div>
   )
 }
-
-

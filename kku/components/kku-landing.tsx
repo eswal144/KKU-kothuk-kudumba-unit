@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowDownRight, ArrowUpRight, BriefcaseBusiness, HeartPulse, Network, Radio, ShieldCheck, Sparkles, UserRound, WalletCards } from 'lucide-react'
 import AuthModal from './auth-modal'
 import ProfileBadge from './profile-badge'
+import Leaderboard from './dashboard/Leaderboard'
 import { fetchPopulationOverview, fetchCivilizationEvents, PopulationOverview, KKUEvent } from '@/lib/api/simulation'
 
 const services = [
@@ -125,6 +126,8 @@ export default function KkuLanding() {
         <div className="kku-nav-links">
           <a href="#concept">Our concept</a>
           <a href="#ecosystem">Ecosystem</a>
+          <a href="/leaderboard" style={{ color: 'var(--mint)', fontWeight: 700 }}>🏆 Leaderboard</a>
+          <a href="/bite-vacancies">🗺️ Bite Vacancies</a>
           <a href="#live-activity">Live Simulation</a>
           <a href="#join">Join KKU</a>
         </div>
@@ -342,6 +345,11 @@ export default function KkuLanding() {
               ))
             )}
           </div>
+        </div>
+
+        {/* 🏆 LIVE MOSQUITO LEADERBOARD (UPDATES EVERY 20s) */}
+        <div style={{ marginTop: '36px' }}>
+          <Leaderboard />
         </div>
       </section>
 

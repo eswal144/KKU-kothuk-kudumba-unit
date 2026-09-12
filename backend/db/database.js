@@ -208,15 +208,18 @@ db.serialize(() => {
     }
   });
 
-  // Seed Leaderboard
+  // Seed Leaderboard (Mosquito Operatives Only)
   db.get('SELECT COUNT(*) as count FROM leaderboard_stats', (err, row) => {
     if (!err && row && row.count === 0) {
       const stmt = db.prepare('INSERT INTO leaderboard_stats (kku_id, name, bite_count, blood_collected, humans_escaped, survival_days) VALUES (?, ?, ?, ?, ?, ?)');
-      stmt.run('KKU-8F29A1', 'Rameshan', 847, 24.5, 142, 28);
-      stmt.run('KKU-7NPH5B', 'Anitha', 802, 22.1, 138, 25);
-      stmt.run('KKU-39AF12', 'Babu', 791, 20.8, 119, 22);
-      stmt.run('KKU-91KK8C', 'Devassy', 714, 18.9, 105, 20);
-      stmt.run('KKU-44MZ09', 'Sheela', 680, 17.4, 98, 19);
+      stmt.run('KKU-8F29A1', 'Bite Tyson', 847, 24.5, 142, 28);
+      stmt.run('KKU-7NPH5B', 'Buzz Aldrin', 802, 22.1, 138, 25);
+      stmt.run('KKU-39AF12', 'Wingston Churchill', 791, 20.8, 119, 22);
+      stmt.run('KKU-91KK8C', 'Mosq Norris', 714, 18.9, 105, 20);
+      stmt.run('KKU-44MZ09', 'Flyoncé Knowles', 680, 17.4, 98, 19);
+      stmt.run('KKU-55BT99', 'Lord Bitemore', 642, 16.2, 89, 18);
+      stmt.run('KKU-77SN02', 'Snoop Wing', 598, 15.0, 77, 16);
+      stmt.run('KKU-11VL01', 'Vlad the Stinger', 545, 13.8, 64, 15);
       stmt.finalize();
     }
   });
@@ -404,7 +407,56 @@ db.serialize(() => {
     )
   `);
 
+  // 18. Bite Vacancies Table (Mosquito Bite Marketplace)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS bite_vacancies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      location_name TEXT UNIQUE NOT NULL,
+      category TEXT NOT NULL,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      required_mosquitoes INTEGER NOT NULL,
+      current_mosquitoes INTEGER NOT NULL,
+      demand_level TEXT DEFAULT 'HIGH',
+      humans_detected INTEGER DEFAULT 10,
+      blood_supply_ml REAL DEFAULT 50.0,
+      message TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 19. Job Applications Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS job_applications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      vacancy_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      status TEXT DEFAULT 'ACCEPTED',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (vacancy_id) REFERENCES bite_vacancies (id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    )
+  `);
+
+  // Seed Bite Vacancies if empty
+  db.get('SELECT COUNT(*) as count FROM bite_vacancies', (err, row) => {
+    if (!err && row && row.count === 0) {
+      const stmt = db.prepare(`
+        INSERT INTO bite_vacancies (location_name, category, latitude, longitude, required_mosquitoes, current_mosquitoes, demand_level, humans_detected, blood_supply_ml, message)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      stmt.run('College Hostel', 'Residential', 9.9662, 76.2440, 20, 12, 'HIGH', 43, 239.0, 'Need 8 more mosquitoes here.');
+      stmt.run('Night Market Food Court', 'Commercial', 9.9620, 76.2430, 50, 50, 'FILLED', 120, 696.0, '✓ VACANCY FILLED: Night Market is fully staffed.');
+      stmt.run('Public Library', 'Study Facility', 9.9680, 76.2415, 30, 41, 'OVERSATURATED', 2, 10.0, 'OVERSATURATED: Too many mosquitoes reported in this sector.');
+      stmt.run('Cattle Farm Barn', 'Agricultural', 9.9635, 76.2410, 40, 12, 'URGENT', 3, 315.0, 'Emergency recruitment active: 28 more night-shift citizens required.');
+      stmt.run('Subway Station Corridor', 'Transit', 9.9650, 76.2455, 20, 15, 'AVAILABLE', 25, 125.0, '5 open flight positions available near ticket counter.');
+      stmt.run('Riverbank Promenade', 'Recreational', 9.9675, 76.2465, 35, 22, 'HIGH', 65, 325.0, 'Sector 4 is currently understaffed. Host availability is unusually high.');
+      stmt.finalize();
+    }
+  });
+
 });
+
 
 module.exports = db;
 
