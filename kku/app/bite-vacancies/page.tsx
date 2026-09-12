@@ -34,8 +34,7 @@ export default function BiteVacanciesPage() {
       {/* Navbar */}
       <nav className="kku-nav" aria-label="Bite Vacancies navigation" id="top">
         <a href="/dashboard" className="kku-mark" aria-label="KKU home">
-          <span>KKU</span>
-          <small>Kothuk Kudumba Unit</small>
+          <img src="/kku-logo.png" alt="KKM - Kothuk Kodumba Unit" style={{ height: '56px', width: 'auto', objectFit: 'contain' }} />
         </a>
         <div className="kku-nav-links">
           <a href="/dashboard">Home</a>

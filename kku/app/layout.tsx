@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   title: 'KKU — The digital home for every mosquito',
   description: 'KKU is a connected digital ecosystem for the world\'s most misunderstood community.',
   generator: 'v0.app',
+  icons: {
+    icon: '/kku-logo.png',
+    shortcut: '/kku-logo.png',
+    apple: '/kku-logo.png'
+  }
 }
 
 export const viewport: Viewport = {

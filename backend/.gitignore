@@ -1,4 +1,9 @@
 node_modules/
 *.db
+*.db-journal
+*.sqlite
+*.sqlite3
 *.log
 .env
+.env.*
+!.env.example

@@ -220,9 +220,8 @@ npm run dev
 ---
 
 ## Team Contributions
-- **SREERAG A.S:** Full-stack architecture, Next.js frontend UI/UX design, Leaflet radar map with iPhone Dynamic Island pills, audio siren synthesis, and dashboard integration.
-- **SREEERAG A.S:** Express backend development, SQLite3 database schema & atomic financial transactions, Groq AI narrative engine integration, and simulation loop engineering.
-- **Eswal Narayanan:** MOSQ-BANK and MOSQ-PENSION integration, authentication & JWT middleware, documentation, API stress testing, and deployment.
+- **SREERAG A.S:** Full-stack architecture, Next.js frontend UI/UX design, Leaflet radar map with iPhone Dynamic Island pills, audio siren synthesis, Express backend & SQLite3 schema, Groq AI narrative engine integration, and dashboard integration.
+- **Eswal Narayanan:** MOSQ-BANK and MOSQ-PENSION integration, authentication & JWT middleware, simulation loop engineering, documentation, API stress testing, and deployment.
 
 ---
 
